@@ -1,0 +1,232 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  /* KKN-OS palette: emerald primary, warm cream background, slate text, amber accent */
+  --background: oklch(0.985 0.008 85);          /* warm off-white (cream) */
+  --foreground: oklch(0.24 0.02 245);           /* slate-900 */
+  --card: oklch(1 0 0);                          /* pure white card surface */
+  --card-foreground: oklch(0.24 0.02 245);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.24 0.02 245);
+  --primary: oklch(0.6 0.14 155);                /* emerald-600, KKN-themed */
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.96 0.01 85);              /* warm muted */
+  --secondary-foreground: oklch(0.3 0.02 245);
+  --muted: oklch(0.96 0.008 85);
+  --muted-foreground: oklch(0.5 0.02 245);       /* slate-500 */
+  --accent: oklch(0.94 0.06 85);                 /* amber-50 highlight */
+  --accent-foreground: oklch(0.45 0.13 65);      /* amber-700 */
+  --destructive: oklch(0.55 0.22 27);            /* red-600 */
+  --border: oklch(0.91 0.01 85);                 /* warm slate border */
+  --input: oklch(0.91 0.01 85);
+  --ring: oklch(0.6 0.14 155);                   /* match primary */
+  --chart-1: oklch(0.6 0.14 155);                /* emerald */
+  --chart-2: oklch(0.7 0.15 75);                 /* amber */
+  --chart-3: oklch(0.55 0.12 245);               /* slate-blue */
+  --chart-4: oklch(0.55 0.22 27);                /* red */
+  --chart-5: oklch(0.7 0.04 85);                 /* warm gray */
+  --radius: 0.625rem;
+  --sidebar: oklch(1 0 0);                       /* white sidebar for contrast */
+  --sidebar-foreground: oklch(0.24 0.02 245);
+  --sidebar-primary: oklch(0.6 0.14 155);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.95 0.04 155);        /* subtle emerald hover */
+  --sidebar-accent-foreground: oklch(0.45 0.14 155);
+  --sidebar-border: oklch(0.91 0.01 85);
+  --sidebar-ring: oklch(0.6 0.14 155);
+}
+
+.dark {
+  /* Dark palette tuned for the KKN emerald brand: warm slate-tinted backgrounds
+     (avoid pure black which fights the accent) with a brighter emerald primary
+     that reads on dark. */
+  --background: oklch(0.19 0.015 245);
+  --foreground: oklch(0.96 0.005 245);
+  --card: oklch(0.235 0.015 245);
+  --card-foreground: oklch(0.96 0.005 245);
+  --popover: oklch(0.235 0.015 245);
+  --popover-foreground: oklch(0.96 0.005 245);
+  --primary: oklch(0.72 0.16 155);
+  --primary-foreground: oklch(0.16 0.02 245);
+  --secondary: oklch(0.28 0.015 245);
+  --secondary-foreground: oklch(0.96 0.005 245);
+  --muted: oklch(0.27 0.015 245);
+  --muted-foreground: oklch(0.7 0.02 245);
+  --accent: oklch(0.32 0.06 85);
+  --accent-foreground: oklch(0.88 0.1 75);
+  --destructive: oklch(0.68 0.22 25);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.72 0.16 155);
+  --chart-1: oklch(0.72 0.16 155);
+  --chart-2: oklch(0.8 0.15 75);
+  --chart-3: oklch(0.7 0.14 245);
+  --chart-4: oklch(0.68 0.22 25);
+  --chart-5: oklch(0.7 0.03 85);
+  --sidebar: oklch(0.22 0.015 245);
+  --sidebar-foreground: oklch(0.96 0.005 245);
+  --sidebar-primary: oklch(0.72 0.16 155);
+  --sidebar-primary-foreground: oklch(0.16 0.02 245);
+  --sidebar-accent: oklch(0.3 0.04 155);
+  --sidebar-accent-foreground: oklch(0.88 0.12 155);
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-ring: oklch(0.72 0.16 155);
+}
+
+/* ============================================================
+   Color scheme variants (data-color on <html>)
+   Overrides --primary, --ring, and sidebar accent. Applies on
+   top of both light & dark modes so the accent stays consistent.
+   ============================================================ */
+
+[data-color="blue"] {
+  --primary: oklch(0.55 0.18 240);
+  --ring: oklch(0.55 0.18 240);
+  --sidebar-primary: oklch(0.55 0.18 240);
+  --sidebar-accent: oklch(0.95 0.05 240);
+  --sidebar-accent-foreground: oklch(0.4 0.18 240);
+  --sidebar-ring: oklch(0.55 0.18 240);
+  --chart-1: oklch(0.55 0.18 240);
+}
+[data-color="blue"].dark {
+  --primary: oklch(0.7 0.17 240);
+  --ring: oklch(0.7 0.17 240);
+  --sidebar-primary: oklch(0.7 0.17 240);
+  --sidebar-primary-foreground: oklch(0.16 0.02 245);
+  --sidebar-accent: oklch(0.3 0.06 240);
+  --sidebar-accent-foreground: oklch(0.85 0.12 240);
+  --sidebar-ring: oklch(0.7 0.17 240);
+  --chart-1: oklch(0.7 0.17 240);
+}
+
+[data-color="rose"] {
+  --primary: oklch(0.6 0.22 15);
+  --ring: oklch(0.6 0.22 15);
+  --sidebar-primary: oklch(0.6 0.22 15);
+  --sidebar-accent: oklch(0.95 0.05 15);
+  --sidebar-accent-foreground: oklch(0.45 0.2 15);
+  --sidebar-ring: oklch(0.6 0.22 15);
+  --chart-1: oklch(0.6 0.22 15);
+}
+[data-color="rose"].dark {
+  --primary: oklch(0.72 0.2 15);
+  --ring: oklch(0.72 0.2 15);
+  --sidebar-primary: oklch(0.72 0.2 15);
+  --sidebar-primary-foreground: oklch(0.16 0.02 245);
+  --sidebar-accent: oklch(0.3 0.08 15);
+  --sidebar-accent-foreground: oklch(0.85 0.15 15);
+  --sidebar-ring: oklch(0.72 0.2 15);
+  --chart-1: oklch(0.72 0.2 15);
+}
+
+[data-color="amber"] {
+  --primary: oklch(0.68 0.17 70);
+  --ring: oklch(0.68 0.17 70);
+  --sidebar-primary: oklch(0.68 0.17 70);
+  --sidebar-accent: oklch(0.95 0.05 70);
+  --sidebar-accent-foreground: oklch(0.5 0.16 65);
+  --sidebar-ring: oklch(0.68 0.17 70);
+  --chart-1: oklch(0.68 0.17 70);
+}
+[data-color="amber"].dark {
+  --primary: oklch(0.78 0.16 70);
+  --ring: oklch(0.78 0.16 70);
+  --sidebar-primary: oklch(0.78 0.16 70);
+  --sidebar-primary-foreground: oklch(0.16 0.02 245);
+  --sidebar-accent: oklch(0.32 0.06 70);
+  --sidebar-accent-foreground: oklch(0.88 0.14 70);
+  --sidebar-ring: oklch(0.78 0.16 70);
+  --chart-1: oklch(0.78 0.16 70);
+}
+
+[data-color="violet"] {
+  --primary: oklch(0.55 0.2 295);
+  --ring: oklch(0.55 0.2 295);
+  --sidebar-primary: oklch(0.55 0.2 295);
+  --sidebar-accent: oklch(0.95 0.05 295);
+  --sidebar-accent-foreground: oklch(0.4 0.18 295);
+  --sidebar-ring: oklch(0.55 0.2 295);
+  --chart-1: oklch(0.55 0.2 295);
+}
+[data-color="violet"].dark {
+  --primary: oklch(0.72 0.18 295);
+  --ring: oklch(0.72 0.18 295);
+  --sidebar-primary: oklch(0.72 0.18 295);
+  --sidebar-primary-foreground: oklch(0.16 0.02 245);
+  --sidebar-accent: oklch(0.3 0.07 295);
+  --sidebar-accent-foreground: oklch(0.85 0.13 295);
+  --sidebar-ring: oklch(0.72 0.18 295);
+  --chart-1: oklch(0.72 0.18 295);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  /* Smooth background/color transition when the theme flips. Kept short so
+     tab switches don't feel laggy. */
+  html,
+  body {
+    transition:
+      background-color 180ms ease,
+      color 180ms ease;
+  }
+}

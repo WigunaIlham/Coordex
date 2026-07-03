@@ -1,0 +1,752 @@
+// KKN-OS Database Schema
+// Reference: KKN-OS-MASTER-SPEC.md Section 8
+// Database: PostgreSQL via Supabase
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum Role {
+  SUPER_ADMIN
+  KETUA
+  SEKRETARIS
+  BENDAHARA
+  PJ_PDD
+  ANGGOTA_PDD
+  PJ_KONSUMSI
+  PJ_ACARA
+  ANGGOTA_ACARA
+  PJ_HUMLOG
+  ANGGOTA_HUMLOG
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ConflictCategory {
+  BEBAN_KERJA
+  KOMUNIKASI
+  INTERPERSONAL
+  LAINNYA
+}
+
+enum ConflictStatus {
+  OPEN
+  DISKUSI
+  SELESAI
+}
+
+enum TransactionType {
+  PEMASUKAN
+  PENGELUARAN
+}
+
+enum MeetingStatus {
+  TERJADWAL
+  BERLANGSUNG
+  SELESAI
+  DIBATALKAN
+}
+
+enum SwapStatus {
+  PENDING
+  DISETUJUI
+  DITOLAK
+}
+
+enum ActionItemStatus {
+  BELUM
+  PROGRESS
+  SELESAI
+}
+
+enum DocumentTemplateType {
+  SURAT_UNDANGAN
+  SURAT_IZIN
+  PROPOSAL
+  NOTULEN_RAPAT
+  DAFTAR_HADIR
+  LPJ
+  NEWS_RELEASE
+  LOGBOOK
+  PROFILING_DESA
+  BERITA_ACARA
+}
+
+enum MediaType {
+  FOTO
+  VIDEO
+}
+
+enum MediaStatus {
+  DRAFT
+  EDITING
+  APPROVED
+  PUBLISHED
+}
+
+enum StakeholderCategory {
+  RT
+  RW
+  PKK
+  KARANG_TARUNA
+  MASJID
+  PERANGKAT_DESA
+  POKJA
+  LAINNYA
+}
+
+enum RiskCategory {
+  CUACA
+  ANGGARAN
+  KESEHATAN
+  KONFLIK
+  JADWAL
+  LAINNYA
+}
+
+enum RiskLevel {
+  RENDAH
+  SEDANG
+  TINGGI
+}
+
+enum RiskStatus {
+  AKTIF
+  DIMITIGASI
+  TERJADI
+}
+
+enum ProgramCycle {
+  SIKLUS_I
+  SIKLUS_II
+  SIKLUS_III
+  SIKLUS_IV
+}
+
+enum ProgramStatus {
+  RENCANA
+  BERLANGSUNG
+  SELESAI
+  DIBATALKAN
+}
+
+enum AchievementType {
+  ARTIKEL
+  VIDEO
+  BERITA
+  LAINNYA
+}
+
+// ============================================================
+// NEXTAUTH REQUIRED MODELS
+// ============================================================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ============================================================
+// CORE: USER
+// ============================================================
+
+model User {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  name              String
+  password          String
+  role              Role     @default(ANGGOTA_HUMLOG)
+  avatarUrl         String?
+  phone             String?
+  studentId         String?
+  isActive          Boolean  @default(true)
+  isPasswordChanged Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+
+  createdTasks        Task[]                  @relation("TaskCreatedBy")
+  assignedTasks       TaskAssignee[]
+  taskAttachments     TaskAttachment[]
+  activityUpdates     ActivityUpdate[]
+  stressSurveys       StressSurvey[]          @relation("SurveyCreatedBy")
+  stressResponses     StressResponse[]
+  conflictReports     ConflictReport[]        @relation("ConflictReporter")
+  managedConflicts    ConflictReport[]        @relation("ConflictManager")
+  transactions        FinancialTransaction[]
+  generatedDocuments  GeneratedDocument[]
+  createdMeetings     Meeting[]               @relation("MeetingCreatedBy")
+  meetingAttendances  MeetingAttendee[]
+  actionItems         ActionItem[]
+  dutyMemberships     ConsumptionDutyMember[]
+  swapRequests        ConsumptionSwap[]       @relation("SwapRequester")
+  swapTargets         ConsumptionSwap[]       @relation("SwapTarget")
+  swapApprovals       ConsumptionSwap[]       @relation("SwapApprover")
+  uploadedFiles       KnowledgeFile[]
+  uploadedMedia       MediaAsset[]            @relation("MediaUploadedBy")
+  approvedMedia       MediaAsset[]            @relation("MediaApprovedBy")
+  createdStakeholders Stakeholder[]
+  contactHistories    ContactHistory[]
+  createdRisks        Risk[]
+  programsAsPIC       Program[]
+  achievements        Achievement[]
+  createdRabs         Rab[]                   @relation("RabCreatedBy")
+
+  @@map("users")
+}
+
+// ============================================================
+// MODULE 1: TASK MANAGEMENT
+// ============================================================
+
+model Task {
+  id          String       @id @default(cuid())
+  title       String       @db.VarChar(200)
+  description String?      @db.Text
+  status      TaskStatus   @default(TODO)
+  priority    TaskPriority @default(MEDIUM)
+  points      Int          @default(3)
+  dueDate     DateTime?
+  createdById String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  createdBy   User             @relation("TaskCreatedBy", fields: [createdById], references: [id])
+  assignees   TaskAssignee[]
+  attachments TaskAttachment[]
+  actionItem  ActionItem?      @relation("ActionItemTask")
+
+  @@index([status])
+  @@index([createdById])
+  @@index([dueDate])
+  @@map("tasks")
+}
+
+model TaskAssignee {
+  taskId     String
+  userId     String
+  assignedAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, userId])
+  @@index([userId]) // dashboard: "my active tasks" filters by userId alone
+  @@map("task_assignees")
+}
+
+model TaskAttachment {
+  id           String   @id @default(cuid())
+  taskId       String
+  fileUrl      String
+  fileName     String
+  fileSize     Int?
+  fileType     String?
+  uploadedById String
+  createdAt    DateTime @default(now())
+
+  task       Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploadedBy User @relation(fields: [uploadedById], references: [id])
+
+  @@map("task_attachments")
+}
+
+// ============================================================
+// MODULE 2: ACTIVITY MONITORING
+// ============================================================
+
+model ActivityUpdate {
+  id          String   @id @default(cuid())
+  title       String   @db.VarChar(200)
+  content     String   @db.Text
+  category    String   @default("Lainnya")
+  isMilestone Boolean  @default(false)
+  authorId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author User @relation(fields: [authorId], references: [id])
+
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("activity_updates")
+}
+
+// ============================================================
+// MODULE 4: STRESS MONITORING
+// ============================================================
+
+model StressSurvey {
+  id          String   @id @default(cuid())
+  weekNumber  Int
+  surveyDate  DateTime
+  opensAt     DateTime
+  closesAt    DateTime
+  isActive    Boolean  @default(true)
+  createdById String
+  createdAt   DateTime @default(now())
+
+  createdBy User             @relation("SurveyCreatedBy", fields: [createdById], references: [id])
+  responses StressResponse[]
+
+  @@unique([weekNumber])
+  @@map("stress_surveys")
+}
+
+/// Response to a weekly stress survey. Uniquely one per (survey, user).
+///
+model StressResponse {
+  id                 String   @id @default(cuid())
+  surveyId           String
+  userId             String
+  fatigueScore       Int
+  motivationScore    Int
+  sleepScore         Int
+  conflictPerception Int
+  stressLevel        Int
+  notes              String?  @db.Text
+  submittedAt        DateTime @default(now())
+
+  survey StressSurvey @relation(fields: [surveyId], references: [id])
+  user   User         @relation(fields: [userId], references: [id])
+
+  @@unique([surveyId, userId])
+  @@index([userId]) // "myHistory" filters by userId alone; composite unique doesn't cover this
+  @@map("stress_responses")
+}
+
+// ============================================================
+// MODULE 5: CONFLICT PREVENTION
+// ============================================================
+
+model ConflictReport {
+  id              String           @id @default(cuid())
+  category        ConflictCategory
+  description     String           @db.Text
+  status          ConflictStatus   @default(OPEN)
+  isAnonymous     Boolean          @default(true)
+  reporterId      String?
+  managedById     String?
+  resolutionNotes String?          @db.Text
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  reporter  User? @relation("ConflictReporter", fields: [reporterId], references: [id])
+  managedBy User? @relation("ConflictManager", fields: [managedById], references: [id])
+
+  @@index([status])
+  @@index([reporterId]) // list view for a specific reporter
+  @@map("conflict_reports")
+}
+
+// ============================================================
+// MODULE 6: FINANCE MANAGEMENT
+// ============================================================
+
+model FinancialTransaction {
+  id           String          @id @default(cuid())
+  type         TransactionType
+  category     String
+  amount       Decimal         @db.Decimal(15, 2)
+  description  String          @db.Text
+  date         DateTime        @db.Date
+  receiptUrl   String?
+  recordedById String
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  recordedBy User @relation(fields: [recordedById], references: [id])
+
+  @@index([date])
+  @@index([type])
+  @@map("financial_transactions")
+}
+
+// ============================================================
+// MODULE 7: DOCUMENT GENERATOR
+// ============================================================
+
+model GeneratedDocument {
+  id           String               @id @default(cuid())
+  templateType DocumentTemplateType
+  title        String
+  formData     Json
+  pdfUrl       String?
+  docxUrl      String?
+  createdById  String
+  createdAt    DateTime             @default(now())
+
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  @@index([templateType])
+  @@map("generated_documents")
+}
+
+// ============================================================
+// MODULE 8: KNOWLEDGE REPOSITORY
+// ============================================================
+
+model KnowledgeFile {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  fileUrl      String
+  fileName     String
+  fileSize     Int?
+  fileType     String?
+  folder       String   @default("Umum")
+  tags         String[]
+  version      Int      @default(1)
+  uploadedById String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  uploadedBy User @relation(fields: [uploadedById], references: [id])
+
+  @@index([folder])
+  @@map("knowledge_files")
+}
+
+// ============================================================
+// MODULE 9: CONSUMPTION ROTATION
+// ============================================================
+
+model ConsumptionDuty {
+  id        String   @id @default(cuid())
+  date      DateTime @db.Date
+  notes     String?
+  createdAt DateTime @default(now())
+
+  members ConsumptionDutyMember[]
+  swaps   ConsumptionSwap[]
+
+  @@unique([date])
+  @@map("consumption_duties")
+}
+
+model ConsumptionDutyMember {
+  dutyId String
+  userId String
+
+  duty ConsumptionDuty @relation(fields: [dutyId], references: [id], onDelete: Cascade)
+  user User            @relation(fields: [userId], references: [id])
+
+  @@id([dutyId, userId])
+  @@map("consumption_duty_members")
+}
+
+model ConsumptionSwap {
+  id           String     @id @default(cuid())
+  dutyId       String
+  requesterId  String
+  targetId     String
+  reason       String?
+  status       SwapStatus @default(PENDING)
+  approvedById String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  duty       ConsumptionDuty @relation(fields: [dutyId], references: [id])
+  requester  User            @relation("SwapRequester", fields: [requesterId], references: [id])
+  target     User            @relation("SwapTarget", fields: [targetId], references: [id])
+  approvedBy User?           @relation("SwapApprover", fields: [approvedById], references: [id])
+
+  @@map("consumption_swaps")
+}
+
+// ============================================================
+// MODULE 10: PDD CENTER
+// ============================================================
+
+model MediaAsset {
+  id           String      @id @default(cuid())
+  type         MediaType
+  title        String
+  caption      String?     @db.Text
+  fileUrl      String
+  thumbnailUrl String?
+  status       MediaStatus @default(DRAFT)
+  event        String?
+  uploadedById String
+  approvedById String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  uploadedBy User  @relation("MediaUploadedBy", fields: [uploadedById], references: [id])
+  approvedBy User? @relation("MediaApprovedBy", fields: [approvedById], references: [id])
+
+  @@index([status])
+  @@index([event])
+  @@map("media_assets")
+}
+
+// ============================================================
+// MODULE 11: MEETING MANAGEMENT
+// ============================================================
+
+model Meeting {
+  id          String        @id @default(cuid())
+  title       String
+  scheduledAt DateTime
+  location    String?
+  agenda      String?       @db.Text
+  minutes     String?       @db.Text
+  status      MeetingStatus @default(TERJADWAL)
+  createdById String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  createdBy   User              @relation("MeetingCreatedBy", fields: [createdById], references: [id])
+  attendees   MeetingAttendee[]
+  actionItems ActionItem[]
+
+  @@index([scheduledAt])
+  @@index([status])
+  @@map("meetings")
+}
+
+model MeetingAttendee {
+  meetingId String
+  userId    String
+  attended  Boolean @default(false)
+  notes     String?
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@id([meetingId, userId])
+  @@map("meeting_attendees")
+}
+
+model ActionItem {
+  id           String           @id @default(cuid())
+  meetingId    String
+  description  String           @db.Text
+  assignedToId String
+  dueDate      DateTime?
+  status       ActionItemStatus @default(BELUM)
+  taskId       String?          @unique
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  meeting    Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  assignedTo User    @relation(fields: [assignedToId], references: [id])
+  task       Task?   @relation("ActionItemTask", fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@map("action_items")
+}
+
+// ============================================================
+// MODULE 12: PROGRAM MONITORING
+// ============================================================
+
+model Program {
+  id          String        @id @default(cuid())
+  cycle       ProgramCycle
+  name        String
+  description String?       @db.Text
+  targetDate  DateTime?
+  progress    Int           @default(0)
+  status      ProgramStatus @default(RENCANA)
+  picId       String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  pic User @relation(fields: [picId], references: [id])
+
+  @@index([cycle])
+  @@map("programs")
+}
+
+// ============================================================
+// MODULE 13: STAKEHOLDER CRM
+// ============================================================
+
+model Stakeholder {
+  id          String              @id @default(cuid())
+  name        String
+  category    StakeholderCategory
+  phone       String?
+  address     String?             @db.Text
+  notes       String?             @db.Text
+  createdById String
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  createdBy      User             @relation(fields: [createdById], references: [id])
+  contactHistory ContactHistory[]
+
+  @@index([category])
+  @@map("stakeholders")
+}
+
+model ContactHistory {
+  id            String   @id @default(cuid())
+  stakeholderId String
+  summary       String   @db.Text
+  date          DateTime @db.Date
+  recordedById  String
+  createdAt     DateTime @default(now())
+
+  stakeholder Stakeholder @relation(fields: [stakeholderId], references: [id], onDelete: Cascade)
+  recordedBy  User        @relation(fields: [recordedById], references: [id])
+
+  @@map("contact_history")
+}
+
+// ============================================================
+// MODULE 14: RISK REGISTER
+// ============================================================
+
+model Risk {
+  id             String       @id @default(cuid())
+  title          String
+  category       RiskCategory
+  probability    RiskLevel
+  impact         RiskLevel
+  mitigationPlan String?      @db.Text
+  status         RiskStatus   @default(AKTIF)
+  createdById    String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  @@map("risks")
+}
+
+// ============================================================
+// MODULE 15: ACHIEVEMENT TRACKER
+// ============================================================
+
+model Achievement {
+  id            String          @id @default(cuid())
+  type          AchievementType
+  title         String
+  url           String?
+  publishedDate DateTime?       @db.Date
+  authorId      String
+  createdAt     DateTime        @default(now())
+
+  author User @relation(fields: [authorId], references: [id])
+
+  @@map("achievements")
+}
+
+model AchievementTarget {
+  id          String          @id @default(cuid())
+  type        AchievementType @unique
+  targetCount Int
+  description String?
+
+  @@map("achievement_targets")
+}
+
+// ============================================================
+// MODULE 16: RAB (Rencana Anggaran Biaya)
+// ============================================================
+
+model Rab {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy  User          @relation("RabCreatedBy", fields: [createdById], references: [id])
+  categories RabCategory[]
+
+  @@index([createdById])
+  @@map("rabs")
+}
+
+model RabCategory {
+  id        String   @id @default(cuid())
+  rabId     String
+  name      String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  rab   Rab       @relation(fields: [rabId], references: [id], onDelete: Cascade)
+  items RabItem[]
+
+  @@index([rabId, order])
+  @@map("rab_categories")
+}
+
+model RabItem {
+  id         String   @id @default(cuid())
+  categoryId String
+  name       String
+  volume     Decimal  @default(0) @db.Decimal(14, 2)
+  unit       String
+  unitPrice  Decimal  @default(0) @db.Decimal(15, 2)
+  notes      String?
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  category RabCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([categoryId, order])
+  @@map("rab_items")
+}
