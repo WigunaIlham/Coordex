@@ -84,6 +84,7 @@ const DEFAULTS: Permission[] = [
   "repositori.crud",
   "repositori.upload",
   "qna.crud",
+  "program.crud",
 ];
 
 // Role → extra permissions on top of DEFAULTS. Super Admin bypasses the map.
@@ -109,9 +110,9 @@ const ROLE_EXTRA: Record<Exclude<Role, "SUPER_ADMIN">, Permission[]> = {
   PJ_PDD: ["media.crud"],
   ANGGOTA_PDD: ["media.crud"],
 
-  // Acara
-  PJ_ACARA: ["program.crud"],
-  ANGGOTA_ACARA: ["program.crud"],
+  // Acara — program CRUD sudah di DEFAULTS (semua user)
+  PJ_ACARA: [],
+  ANGGOTA_ACARA: [],
 
   // HumLog — kelola jadwal (konsumsi+piket) + pemangku kepentingan
   PJ_HUMLOG: ["konsumsi.manage", "pemangku.crud"],

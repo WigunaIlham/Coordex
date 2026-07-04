@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import type { Role } from "@/lib/generated/prisma/client";
+import type { DivisiTag } from "@/lib/generated/prisma/client";
 import { cn, formatDate } from "@/lib/utils";
 
 const DIVISI_META: Record<
@@ -50,15 +50,7 @@ const DIVISI_META: Record<
   },
 };
 
-const DIVISI_ORDER = ["UMUM", "PDD", "ACARA", "HUMLOG", "KONSUMSI"];
-
-function divisiOf(role: Role): string {
-  if (role === "PJ_PDD" || role === "ANGGOTA_PDD") return "PDD";
-  if (role === "PJ_ACARA" || role === "ANGGOTA_ACARA") return "ACARA";
-  if (role === "PJ_HUMLOG" || role === "ANGGOTA_HUMLOG") return "HUMLOG";
-  if (role === "PJ_KONSUMSI") return "KONSUMSI";
-  return "UMUM";
-}
+const DIVISI_ORDER: DivisiTag[] = ["UMUM", "PDD", "ACARA", "HUMLOG", "KONSUMSI"];
 
 type ProgramCard = {
   id: string;
@@ -99,9 +91,9 @@ export default async function TimelinePage({
   if (!session?.user?.id) redirect("/login");
   const { divisi: divisiParam } = await searchParams;
   const activeDivisi =
-    divisiParam && DIVISI_ORDER.includes(divisiParam.toUpperCase())
-      ? divisiParam.toUpperCase()
-      : "SEMUA";
+    divisiParam && (DIVISI_ORDER as string[]).includes(divisiParam.toUpperCase())
+      ? (divisiParam.toUpperCase() as DivisiTag)
+      : ("SEMUA" as "SEMUA");
 
   const programs = await db.program.findMany({
     orderBy: [{ targetDate: "asc" }, { createdAt: "desc" }],
@@ -110,12 +102,11 @@ export default async function TimelinePage({
     },
   });
 
-  // Group by divisi
+  // Group by divisi eksplisit dari kolom program.divisi
   const buckets: Record<string, ProgramCard[]> = {};
   for (const key of DIVISI_ORDER) buckets[key] = [];
   for (const p of programs) {
-    const div = divisiOf(p.pic.role);
-    buckets[div]?.push({
+    buckets[p.divisi]?.push({
       id: p.id,
       name: p.name,
       description: p.description,

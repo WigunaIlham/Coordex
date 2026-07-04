@@ -35,6 +35,7 @@ export async function POST(req: Request) {
   const program = await db.program.create({
     data: {
       cycle: parsed.data.cycle,
+      divisi: parsed.data.divisi,
       name: parsed.data.name,
       description: parsed.data.description ?? null,
       startDate: parsed.data.startDate,

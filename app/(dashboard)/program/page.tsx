@@ -28,6 +28,7 @@ export default async function ProgramPage() {
   const serialised = programs.map((p) => ({
     id: p.id,
     cycle: p.cycle,
+    divisi: p.divisi,
     name: p.name,
     description: p.description,
     startDate: p.startDate?.toISOString() ?? null,

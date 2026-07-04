@@ -12,6 +12,13 @@ export const ProgramStatusEnum = z.enum([
   "SELESAI",
   "DIBATALKAN",
 ]);
+export const DivisiTagEnum = z.enum([
+  "UMUM",
+  "PDD",
+  "ACARA",
+  "HUMLOG",
+  "KONSUMSI",
+]);
 
 const optionalDate = z
   .string()
@@ -31,6 +38,7 @@ const updateOptionalDate = z
 
 export const createProgramSchema = z.object({
   cycle: ProgramCycleEnum,
+  divisi: DivisiTagEnum.default("UMUM"),
   name: z.string().min(1, "Nama wajib").max(200),
   description: z.string().max(2000).optional().nullable(),
   startDate: optionalDate,
@@ -40,6 +48,7 @@ export const createProgramSchema = z.object({
 
 export const updateProgramSchema = z.object({
   cycle: ProgramCycleEnum.optional(),
+  divisi: DivisiTagEnum.optional(),
   name: z.string().min(1).max(200).optional(),
   description: z.string().max(2000).nullable().optional(),
   startDate: updateOptionalDate,
@@ -61,4 +70,12 @@ export const PROGRAM_STATUS_LABELS = {
   BERLANGSUNG: "Berlangsung",
   SELESAI: "Selesai",
   DIBATALKAN: "Dibatalkan",
+} as const;
+
+export const DIVISI_LABELS = {
+  UMUM: "Umum",
+  PDD: "PDD (Publikasi Dokumentasi)",
+  ACARA: "Acara",
+  HUMLOG: "HumLog",
+  KONSUMSI: "Konsumsi",
 } as const;

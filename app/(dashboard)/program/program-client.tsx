@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarClock, Loader2, Plus, Target, Trash2 } from "lucide-react";
+import { CalendarClock, Loader2, Plus, Search, Target, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -28,12 +28,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type {
+  DivisiTag,
   ProgramCycle,
   ProgramStatus,
   Role,
 } from "@/lib/generated/prisma/client";
 import { cn, formatDate, getInitials } from "@/lib/utils";
 import {
+  DIVISI_LABELS,
   PROGRAM_CYCLE_LABELS,
   PROGRAM_STATUS_LABELS,
 } from "@/lib/validators/program";
@@ -41,6 +43,7 @@ import {
 type Program = {
   id: string;
   cycle: ProgramCycle;
+  divisi: DivisiTag;
   name: string;
   description: string | null;
   startDate: string | null;
@@ -49,6 +52,16 @@ type Program = {
   status: ProgramStatus;
   pic: { id: string; name: string; avatarUrl: string | null; role: Role };
   createdAt: string;
+};
+
+const DIVISI_LIST: DivisiTag[] = ["UMUM", "PDD", "ACARA", "HUMLOG", "KONSUMSI"];
+
+const DIVISI_TONE: Record<DivisiTag, string> = {
+  UMUM: "bg-slate-500/10 text-slate-700 border-slate-300 dark:text-slate-300",
+  PDD: "bg-purple-500/10 text-purple-700 border-purple-300 dark:text-purple-300",
+  ACARA: "bg-emerald-500/10 text-emerald-700 border-emerald-300 dark:text-emerald-300",
+  HUMLOG: "bg-blue-500/10 text-blue-700 border-blue-300 dark:text-blue-300",
+  KONSUMSI: "bg-amber-500/10 text-amber-700 border-amber-300 dark:text-amber-300",
 };
 
 const CYCLES: ProgramCycle[] = ["SIKLUS_I", "SIKLUS_II", "SIKLUS_III", "SIKLUS_IV"];
@@ -84,11 +97,30 @@ export function ProgramClient({
   const [pendingId, setPendingId] = useState<string | null>(null);
 
   const [cycle, setCycle] = useState<ProgramCycle>("SIKLUS_I");
+  const [divisi, setDivisi] = useState<DivisiTag>("UMUM");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState("");
   const [targetDate, setTargetDate] = useState("");
   const [picId, setPicId] = useState(members[0]?.id ?? "");
+
+  // Filter + search
+  const [search, setSearch] = useState("");
+  const [filterDivisi, setFilterDivisi] = useState<DivisiTag | "ALL">("ALL");
+  const [filterStatus, setFilterStatus] = useState<ProgramStatus | "ALL">("ALL");
+  const [filterCycle, setFilterCycle] = useState<ProgramCycle | "ALL">("ALL");
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return programs.filter((p) => {
+      if (q && !p.name.toLowerCase().includes(q) && !(p.description ?? "").toLowerCase().includes(q))
+        return false;
+      if (filterDivisi !== "ALL" && p.divisi !== filterDivisi) return false;
+      if (filterStatus !== "ALL" && p.status !== filterStatus) return false;
+      if (filterCycle !== "ALL" && p.cycle !== filterCycle) return false;
+      return true;
+    });
+  }, [programs, search, filterDivisi, filterStatus, filterCycle]);
 
   const grouped = useMemo(() => {
     const map: Record<ProgramCycle, Program[]> = {
@@ -97,9 +129,14 @@ export function ProgramClient({
       SIKLUS_III: [],
       SIKLUS_IV: [],
     };
-    for (const p of programs) map[p.cycle].push(p);
+    for (const p of filtered) map[p.cycle].push(p);
     return map;
-  }, [programs]);
+  }, [filtered]);
+
+  const activeFilterCount =
+    (filterDivisi !== "ALL" ? 1 : 0) +
+    (filterStatus !== "ALL" ? 1 : 0) +
+    (filterCycle !== "ALL" ? 1 : 0);
 
   async function onCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -110,6 +147,7 @@ export function ProgramClient({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         cycle,
+        divisi,
         name,
         description: description || null,
         startDate: startDate || null,
@@ -128,6 +166,7 @@ export function ProgramClient({
     setDescription("");
     setStartDate("");
     setTargetDate("");
+    setDivisi("UMUM");
     setOpen(false);
     toast.success("Program tersimpan");
     router.refresh();
@@ -184,11 +223,93 @@ export function ProgramClient({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button size="sm" onClick={() => setOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" /> Program Baru
-        </Button>
+      {/* Toolbar: search + filter + action */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="relative min-w-0 flex-1 sm:max-w-xs">
+          <Search
+            className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden
+          />
+          <Input
+            placeholder="Cari program…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-9 pl-8"
+            aria-label="Cari program"
+          />
+        </div>
+        <Select
+          value={filterDivisi}
+          onValueChange={(v) => v && setFilterDivisi(v as DivisiTag | "ALL")}
+        >
+          <SelectTrigger className="h-9 w-full sm:w-40">
+            <SelectValue placeholder="Divisi" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Semua divisi</SelectItem>
+            {DIVISI_LIST.map((d) => (
+              <SelectItem key={d} value={d}>
+                {DIVISI_LABELS[d]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={filterStatus}
+          onValueChange={(v) => v && setFilterStatus(v as ProgramStatus | "ALL")}
+        >
+          <SelectTrigger className="h-9 w-full sm:w-36">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Semua status</SelectItem>
+            <SelectItem value="RENCANA">Rencana</SelectItem>
+            <SelectItem value="BERLANGSUNG">Berlangsung</SelectItem>
+            <SelectItem value="SELESAI">Selesai</SelectItem>
+            <SelectItem value="DIBATALKAN">Dibatalkan</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
+          value={filterCycle}
+          onValueChange={(v) => v && setFilterCycle(v as ProgramCycle | "ALL")}
+        >
+          <SelectTrigger className="h-9 w-full sm:w-32">
+            <SelectValue placeholder="Siklus" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Semua siklus</SelectItem>
+            {CYCLES.map((c) => (
+              <SelectItem key={c} value={c}>
+                {PROGRAM_CYCLE_LABELS[c]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {(activeFilterCount > 0 || search) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-9 text-xs"
+            onClick={() => {
+              setSearch("");
+              setFilterDivisi("ALL");
+              setFilterStatus("ALL");
+              setFilterCycle("ALL");
+            }}
+          >
+            Reset · {activeFilterCount + (search ? 1 : 0)}
+          </Button>
+        )}
+        <div className="sm:ml-auto">
+          <Button size="sm" onClick={() => setOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Program Baru
+          </Button>
+        </div>
       </div>
+
+      <p className="text-[11px] text-muted-foreground" aria-live="polite">
+        Menampilkan {filtered.length} dari {programs.length} program
+      </p>
 
       {programs.length === 0 ? (
         <EmptyState
@@ -200,6 +321,13 @@ export function ProgramClient({
               <Plus className="mr-2 h-4 w-4" /> Buat Program Pertama
             </Button>
           }
+        />
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          icon={Search}
+          title="Tidak ada program yang cocok"
+          description="Coba ubah filter atau kata kunci pencarian."
+          compact
         />
       ) : (
         <div className="space-y-6">
@@ -279,6 +407,30 @@ export function ProgramClient({
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>
+                  Divisi <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={divisi}
+                  onValueChange={(v) => v && setDivisi(v as DivisiTag)}
+                  disabled={saving}
+                >
+                  <SelectTrigger className="h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DIVISI_LIST.map((d) => (
+                      <SelectItem key={d} value={d}>
+                        {DIVISI_LABELS[d]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">
+                  Divisi menentukan pengelompokan di halaman Timeline.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label>
                   PIC <span className="text-destructive">*</span>
                 </Label>
                 <Select
@@ -298,6 +450,20 @@ export function ProgramClient({
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="p-start">Tanggal Mulai</Label>
+                <Input
+                  id="p-start"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="h-10"
+                  disabled={saving}
+                />
+              </div>
               <div className="space-y-1.5">
                 <Label htmlFor="p-target">Target Tanggal</Label>
                 <Input
@@ -311,21 +477,10 @@ export function ProgramClient({
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="p-start">Tanggal Mulai (untuk timeline)</Label>
-              <Input
-                id="p-start"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="h-10"
-                disabled={saving}
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Bersama Target Tanggal, dipakai halaman Timeline untuk
-                menghitung progress berdasarkan waktu berjalan.
-              </p>
-            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Tanggal Mulai + Target Tanggal dipakai halaman Timeline untuk
+              menghitung progress berdasarkan waktu berjalan.
+            </p>
 
             <div className="space-y-1.5">
               <Label htmlFor="p-desc">Deskripsi (opsional)</Label>
@@ -384,6 +539,12 @@ function ProgramCard({
   return (
     <Card className={cn(program.status === "DIBATALKAN" && "opacity-60")}>
       <CardContent className="space-y-3 p-4">
+        <Badge
+          variant="outline"
+          className={cn("mb-1 text-[10px]", DIVISI_TONE[program.divisi])}
+        >
+          {DIVISI_LABELS[program.divisi].split(" ")[0]}
+        </Badge>
         <div className="flex items-start justify-between gap-2">
           <p className="line-clamp-2 text-sm font-semibold leading-snug">
             {program.name}
