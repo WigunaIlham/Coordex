@@ -1,3 +1,5 @@
+import { revalidateTag } from "next/cache";
+
 import { apiErr, apiOk } from "@/lib/api";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -52,6 +54,8 @@ export async function PUT(
       recordedBy: { select: { id: true, name: true, role: true } },
     },
   });
+  revalidateTag("finance", "seconds");
+  revalidateTag("dashboard", "seconds");
   return apiOk(updated);
 }
 
@@ -79,5 +83,7 @@ export async function DELETE(
     }
   }
 
+  revalidateTag("finance", "seconds");
+  revalidateTag("dashboard", "seconds");
   return apiOk({ ok: true });
 }

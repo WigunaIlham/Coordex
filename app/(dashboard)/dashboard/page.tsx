@@ -145,11 +145,10 @@ export default async function DashboardPage() {
     // Cached 10s — team-wide.
     getRecentActivities(),
     isKetua ? getUnresolvedConflictCount() : Promise.resolve<number | null>(null),
-    isKetua
-      ? getFinanceAggregate()
-      : Promise.resolve<
-          { type: "PEMASUKAN" | "PENGELUARAN"; _sum: { amount: unknown } }[]
-        >([]),
+    // Saldo dibuka untuk semua user — cuma informasi ringkasan finance
+    // team-wide, bukan detail transaksi. Cache 10s + polling 30s = <40s
+    // stale worst-case.
+    getFinanceAggregate(),
     activeSurveyPromise,
     getUpcomingMeetings(),
     getMeetingCount(),
@@ -176,7 +175,7 @@ export default async function DashboardPage() {
     : null;
 
   let balance: number | null = null;
-  if (isKetua && Array.isArray(financeAggr)) {
+  if (Array.isArray(financeAggr)) {
     const inSum = Number(financeAggr.find((g) => g.type === "PEMASUKAN")?._sum.amount ?? 0);
     const outSum = Number(financeAggr.find((g) => g.type === "PENGELUARAN")?._sum.amount ?? 0);
     balance = inSum - outSum;
@@ -214,11 +213,11 @@ export default async function DashboardPage() {
     },
     {
       label: "Saldo KKN",
-      value: balance !== null ? formatCurrency(balance) : "—",
+      value: balance !== null ? formatCurrency(balance) : "Rp 0",
       icon: Wallet,
       accent: "amber",
-      href: isKetua ? "/keuangan" : undefined,
-      hint: balance !== null ? "Real-time" : "Khusus Ketua",
+      href: "/keuangan",
+      hint: "Real-time · Auto-refresh 30s",
     },
     {
       label: "Indeks Stres Tim",
