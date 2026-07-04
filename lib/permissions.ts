@@ -33,7 +33,6 @@ export type Permission =
   | "dokumen.crudFinance"
   | "rapat.crud"
   | "konsumsi.manage"
-  | "beban_kerja.crud"
 
   // Phase-2 modules
   | "media.crud"
@@ -67,13 +66,19 @@ const DEFAULTS: Permission[] = [
   "konsumsi.view",
   "repositori.view",
   "profil.view",
+  // Modul tambahan — akses CRUD dibuka untuk semua user aktif supaya seluruh
+  // tim bisa kontribusi (upload foto media, catat pencapaian, log risiko, dll).
+  "media.crud",
+  "program.crud",
+  "pencapaian.crud",
+  "pemangku.crud",
+  "risiko.crud",
 ];
 
 // Role → extra permissions on top of DEFAULTS. Super Admin bypasses the map.
 const ROLE_EXTRA: Record<Exclude<Role, "SUPER_ADMIN">, Permission[]> = {
   KETUA: [
     "tugas.crud",
-    "beban_kerja.crud",
     "konflik.manage",
     "stres.manage",
     "keuangan.approve",
@@ -155,7 +160,6 @@ const ALL_PERMISSIONS: Permission[] = [
   "dokumen.crudFinance",
   "rapat.crud",
   "konsumsi.manage",
-  "beban_kerja.crud",
   "media.crud",
   "program.crud",
   "pencapaian.crud",

@@ -8,15 +8,15 @@ import {
   ClipboardList,
   FileText,
   Frown,
-  Gauge,
+  GraduationCap,
   LayoutDashboard,
   ListChecks,
   Megaphone,
+  Route as RouteIcon,
   Settings,
   ShieldAlert,
   Target,
   Users,
-  Utensils,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
@@ -44,21 +44,7 @@ export const navGroups: NavGroup[] = [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, permissions: ["dashboard.view"] },
       { label: "Tugas", href: "/tugas", icon: ListChecks, permissions: ["tugas.view"] },
       { label: "Aktivitas", href: "/aktivitas", icon: ClipboardList, permissions: ["aktivitas.crud"] },
-      { label: "Beban Kerja", href: "/beban-kerja", icon: Gauge, permissions: ["beban_kerja.crud"] },
-    ],
-  },
-  {
-    label: "Tim & Wellbeing",
-    items: [
-      { label: "Survei Stres", href: "/stres", icon: Frown, permissions: ["stres.respond"] },
-      { label: "Laporkan Masalah", href: "/konflik/baru", icon: AlertTriangle, permissions: ["konflik.report"] },
-      {
-        label: "Pusat Konflik",
-        href: "/konflik",
-        icon: ShieldAlert,
-        permissions: ["konflik.manage"],
-        badge: "ketua-conflicts",
-      },
+      { label: "Timeline", href: "/timeline", icon: RouteIcon, permissions: ["dashboard.view"] },
     ],
   },
   {
@@ -68,7 +54,7 @@ export const navGroups: NavGroup[] = [
       { label: "RAB", href: "/rab", icon: Calculator, permissions: ["rab.view"] },
       { label: "Dokumen", href: "/dokumen", icon: FileText, permissions: ["dokumen.view"] },
       { label: "Rapat", href: "/rapat", icon: CalendarDays, permissions: ["rapat.view"] },
-      { label: "Jadwal Konsumsi", href: "/konsumsi", icon: Utensils, permissions: ["konsumsi.view"] },
+      { label: "Jadwal", href: "/jadwal", icon: CalendarDays, permissions: ["konsumsi.view"] },
     ],
   },
   {
@@ -80,6 +66,7 @@ export const navGroups: NavGroup[] = [
       { label: "Pencapaian", href: "/pencapaian", icon: Award, permissions: ["pencapaian.crud"] },
       { label: "Pemangku Kepentingan", href: "/pemangku", icon: Building2, permissions: ["pemangku.crud"] },
       { label: "Risiko", href: "/risiko", icon: AlertTriangle, permissions: ["risiko.crud"] },
+      { label: "Tutorial", href: "/tutorial", icon: GraduationCap, permissions: ["dashboard.view"] },
     ],
   },
   {
@@ -87,6 +74,22 @@ export const navGroups: NavGroup[] = [
     items: [
       { label: "Profil", href: "/profil", icon: Users, permissions: ["profil.view"] },
       { label: "Admin", href: "/admin/pengguna", icon: Settings, permissions: ["admin.users"] },
+    ],
+  },
+  {
+    // Isu tim & konflik — dipindah ke paling bawah karena jarang diakses harian
+    // dan biar tidak jadi noise di sidebar untuk operasi rutin.
+    label: "Isu Tim",
+    items: [
+      { label: "Survei Stres", href: "/stres", icon: Frown, permissions: ["stres.respond"] },
+      { label: "Laporkan Masalah", href: "/konflik/baru", icon: AlertTriangle, permissions: ["konflik.report"] },
+      {
+        label: "Pusat Konflik",
+        href: "/konflik",
+        icon: ShieldAlert,
+        permissions: ["konflik.manage"],
+        badge: "ketua-conflicts",
+      },
     ],
   },
 ];

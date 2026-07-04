@@ -21,19 +21,18 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { DashboardRefresher } from "./dashboard-refresher";
 import {
   getFinanceAggregate,
   getRecentActivities,
   getTodayConsumptionDuty,
   getUnresolvedConflictCount,
   getUpcomingMeetings,
-  getWorkloadRows,
 } from "@/lib/services/dashboard.service";
 import {
   computeTeamStressIndex,
   getStressBand,
 } from "@/lib/services/stress.service";
-import { WORKLOAD_CAPACITY } from "@/lib/constants";
 import { cn, formatCurrency, formatDateTime, getInitials } from "@/lib/utils";
 import { isAdminOrKetua } from "@/lib/permissions";
 import type { LucideIcon } from "lucide-react";
@@ -121,7 +120,6 @@ export default async function DashboardPage() {
     recentActivities,
     conflictCount,
     financeAggr,
-    workloadRows,
     activeSurvey,
     upcomingMeetings,
     todayDuty,
@@ -141,7 +139,6 @@ export default async function DashboardPage() {
       : Promise.resolve<
           { type: "PEMASUKAN" | "PENGELUARAN"; _sum: { amount: unknown } }[]
         >([]),
-    isKetua ? getWorkloadRows() : Promise.resolve<never[]>([]),
     activeSurveyPromise,
     getUpcomingMeetings(),
     getTodayConsumptionDuty(todayKey),
@@ -171,10 +168,6 @@ export default async function DashboardPage() {
     const outSum = Number(financeAggr.find((g) => g.type === "PENGELUARAN")?._sum.amount ?? 0);
     balance = inSum - outSum;
   }
-
-  const overloadedCount = isKetua
-    ? workloadRows.filter((r) => Number(r.weighted) > WORKLOAD_CAPACITY).length
-    : 0;
 
   const firstName = (session.user.name ?? "Tim").split(" ")[0];
 
@@ -223,25 +216,26 @@ export default async function DashboardPage() {
 
   return (
     <div>
+      <DashboardRefresher />
       <PageHeader
         title={`Halo, ${firstName} 👋`}
         description="Ringkasan aktivitas tim hari ini."
       />
 
       {/* Priority stack: survey CTA first (personal), then Ketua-level warnings. */}
-      {(surveyPending || (isKetua && (overloadedCount > 0 || (conflictCount ?? 0) > 0))) && (
+      {(surveyPending || (isKetua && (conflictCount ?? 0) > 0)) && (
         <div className="mb-6 space-y-3">
           {surveyPending && (
-            <div className="flex flex-col gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-blue-500/40 dark:bg-blue-500/10">
               <div className="flex items-start gap-3">
-                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-blue-100 text-blue-700">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-200">
                   <MessageSquare className="h-4 w-4" />
                 </div>
                 <div className="text-sm">
-                  <p className="font-medium text-blue-900">
+                  <p className="font-medium text-blue-900 dark:text-blue-100">
                     Survei minggu ke-{surveyPending.weekNumber} menunggu
                   </p>
-                  <p className="text-blue-800/80">
+                  <p className="text-blue-800/80 dark:text-blue-200/80">
                     Luangkan 1 menit untuk mengisi survei wellbeing tim.
                   </p>
                 </div>
@@ -254,31 +248,19 @@ export default async function DashboardPage() {
               </Link>
             </div>
           )}
-          {isKetua && (overloadedCount > 0 || (conflictCount ?? 0) > 0) && (
-            <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm">
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-100 text-amber-700">
+          {isKetua && conflictCount !== null && conflictCount > 0 && (
+            <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm dark:border-amber-500/40 dark:bg-amber-500/10">
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-200">
                 <AlertTriangle className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="font-medium text-amber-900">Perhatian Ketua</p>
-                <ul className="mt-1 space-y-1 text-amber-900/80">
-                  {overloadedCount > 0 && (
-                    <li className="flex flex-wrap items-center gap-x-1.5">
-                      <span>{overloadedCount} anggota mengalami beban kerja berlebih.</span>
-                      <Link href="/beban-kerja" className="font-medium underline underline-offset-2">
-                        Tinjau
-                      </Link>
-                    </li>
-                  )}
-                  {conflictCount !== null && conflictCount > 0 && (
-                    <li className="flex flex-wrap items-center gap-x-1.5">
-                      <span>{conflictCount} laporan konflik belum terselesaikan.</span>
-                      <Link href="/konflik" className="font-medium underline underline-offset-2">
-                        Buka
-                      </Link>
-                    </li>
-                  )}
-                </ul>
+                <p className="font-medium text-amber-900 dark:text-amber-100">Perhatian Ketua</p>
+                <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-amber-900/80 dark:text-amber-200/80">
+                  <span>{conflictCount} laporan konflik belum terselesaikan.</span>
+                  <Link href="/konflik" className="font-medium underline underline-offset-2">
+                    Buka
+                  </Link>
+                </p>
               </div>
             </div>
           )}

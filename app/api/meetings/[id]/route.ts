@@ -27,12 +27,6 @@ export async function GET(
           user: { select: { id: true, name: true, avatarUrl: true, role: true } },
         },
       },
-      actionItems: {
-        orderBy: { createdAt: "asc" },
-        include: {
-          assignedTo: { select: { id: true, name: true, avatarUrl: true } },
-        },
-      },
     },
   });
   if (!meeting) return apiErr("Rapat tidak ditemukan", 404);
@@ -85,10 +79,7 @@ export async function DELETE(
     select: { id: true },
   });
   if (!exists) return apiErr("Rapat tidak ditemukan", 404);
-  // MeetingAttendee & ActionItem cascade via schema. Tasks linked to
-  // action items keep existing (ActionItem.taskId → SetNull is on task
-  // deletion; action items get cascade-deleted here so linked tasks are
-  // simply orphaned from their originating meeting).
+  // MeetingAttendee cascade via schema.
   await db.meeting.delete({ where: { id } });
   return apiOk({ ok: true });
 }

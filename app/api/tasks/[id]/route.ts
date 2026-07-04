@@ -1,7 +1,6 @@
 import { apiErr, apiOk } from "@/lib/api";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { taskStatusToActionItemStatus } from "@/lib/services/action-item-sync";
 import { updateTaskSchema } from "@/lib/validators/task";
 import { isAdminOrKetua } from "@/lib/permissions";
 
@@ -64,25 +63,15 @@ export async function PUT(
     return apiErr("Hanya pembuat tugas atau Ketua yang dapat mengedit", 403);
   }
 
-  const updated = await db.$transaction(async (tx) => {
-    const t = await tx.task.update({
-      where: { id },
-      data: parsed.data,
-      include: {
-        assignees: {
-          include: { user: { select: { id: true, name: true, avatarUrl: true, role: true } } },
-        },
-        createdBy: { select: { id: true, name: true, avatarUrl: true } },
-        actionItem: { select: { id: true } },
+  const updated = await db.task.update({
+    where: { id },
+    data: parsed.data,
+    include: {
+      assignees: {
+        include: { user: { select: { id: true, name: true, avatarUrl: true, role: true } } },
       },
-    });
-    if (parsed.data.status !== undefined && t.actionItem) {
-      await tx.actionItem.update({
-        where: { id: t.actionItem.id },
-        data: { status: taskStatusToActionItemStatus(parsed.data.status) },
-      });
-    }
-    return t;
+      createdBy: { select: { id: true, name: true, avatarUrl: true } },
+    },
   });
   return apiOk(updated);
 }

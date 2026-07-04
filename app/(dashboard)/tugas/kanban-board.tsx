@@ -6,7 +6,8 @@ import {
   DragOverlay,
   type DragStartEvent,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   closestCorners,
   useSensor,
   useSensors,
@@ -85,8 +86,16 @@ export function KanbanBoard({
   }
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    // MouseSensor: desktop pointer. Small distance threshold so click vs drag
+    // stays snappy.
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    // TouchSensor: HP + tablet. Delay 200ms + tolerance so tap-to-open still
+    // works but hold-and-drag triggers reliably (prevents scrolling from
+    // hijacking short touches).
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 6 },
+    }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
   const visible = useMemo(() => {

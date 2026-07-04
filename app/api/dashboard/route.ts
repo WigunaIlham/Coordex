@@ -1,7 +1,6 @@
 import { apiErr, apiOk } from "@/lib/api";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { computeWorkload } from "@/lib/services/workload.service";
 import { isAdminOrKetua } from "@/lib/permissions";
 
 export const runtime = "nodejs";
@@ -13,7 +12,7 @@ export async function GET() {
   const userId = session.user.id;
   const isKetua = isAdminOrKetua(session.user.role);
 
-  const [myTaskGroups, recentActivities, conflictCount, financeSummary, workloadAll] =
+  const [myTaskGroups, recentActivities, conflictCount, financeSummary] =
     await Promise.all([
       db.task.groupBy({
         by: ["status"],
@@ -36,17 +35,6 @@ export async function GET() {
             _sum: { amount: true },
           })
         : Promise.resolve<{ type: "PEMASUKAN" | "PENGELUARAN"; _sum: { amount: unknown } }[]>([]),
-      isKetua
-        ? db.user.findMany({
-            where: { isActive: true },
-            select: {
-              id: true,
-              assignedTasks: {
-                select: { task: { select: { status: true, priority: true, points: true } } },
-              },
-            },
-          })
-        : Promise.resolve<never[]>([]),
     ]);
 
   const myTasks = {
@@ -67,23 +55,9 @@ export async function GET() {
     financeBalance = pemasukan - pengeluaran;
   }
 
-  let workloadAlert: { overloadedCount: number; underutilizedCount: number } | null = null;
-  if (isKetua) {
-    let over = 0;
-    let under = 0;
-    for (const u of workloadAll) {
-      const tasks = u.assignedTasks.map((a) => a.task);
-      const wl = computeWorkload(tasks);
-      if (wl.status === "OVERLOADED") over++;
-      else if (wl.status === "UNDERUTILIZED") under++;
-    }
-    workloadAlert = { overloadedCount: over, underutilizedCount: under };
-  }
-
   return apiOk({
     myTasks,
     recentActivities,
-    workloadAlert,
     unresolvedConflicts: conflictCount,
     financeBalance,
   });

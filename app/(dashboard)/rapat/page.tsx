@@ -1,4 +1,4 @@
-import { CalendarDays, CalendarClock, ListChecks, MapPin, Users } from "lucide-react";
+import { CalendarDays, CalendarClock, MapPin, Users } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -21,7 +21,7 @@ export default async function RapatPage() {
       orderBy: { scheduledAt: "desc" },
       include: {
         createdBy: { select: { id: true, name: true } },
-        _count: { select: { attendees: true, actionItems: true } },
+        _count: { select: { attendees: true } },
       },
     }),
     canCreate
@@ -120,7 +120,7 @@ type MeetingRowData = {
   status: import("@/lib/generated/prisma/client").MeetingStatus;
   scheduledAt: Date;
   location: string | null;
-  _count: { attendees: number; actionItems: number };
+  _count: { attendees: number };
 };
 
 function MeetingRow({ m, highlight = false }: { m: MeetingRowData; highlight?: boolean }) {
@@ -160,9 +160,6 @@ function MeetingRow({ m, highlight = false }: { m: MeetingRowData; highlight?: b
             )}
             <span className="inline-flex items-center gap-1">
               <Users className="h-3 w-3" /> {m._count.attendees} peserta
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <ListChecks className="h-3 w-3" /> {m._count.actionItems} action
             </span>
           </div>
         </div>

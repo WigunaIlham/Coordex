@@ -1,7 +1,6 @@
 import { apiErr, apiOk } from "@/lib/api";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { taskStatusToActionItemStatus } from "@/lib/services/action-item-sync";
 import { updateTaskStatusSchema } from "@/lib/validators/task";
 import { isAdminOrKetua } from "@/lib/permissions";
 
@@ -19,7 +18,6 @@ export async function PATCH(
     where: { id },
     select: {
       assignees: { select: { userId: true } },
-      actionItem: { select: { id: true } },
     },
   });
   if (!task) return apiErr("Tugas tidak ditemukan", 404);
@@ -33,19 +31,10 @@ export async function PATCH(
   const parsed = updateTaskStatusSchema.safeParse(body);
   if (!parsed.success) return apiErr("Status tidak valid", 400);
 
-  const updated = await db.$transaction(async (tx) => {
-    const t = await tx.task.update({
-      where: { id },
-      data: { status: parsed.data.status },
-      select: { id: true, status: true },
-    });
-    if (task.actionItem) {
-      await tx.actionItem.update({
-        where: { id: task.actionItem.id },
-        data: { status: taskStatusToActionItemStatus(parsed.data.status) },
-      });
-    }
-    return t;
+  const updated = await db.task.update({
+    where: { id },
+    data: { status: parsed.data.status },
+    select: { id: true, status: true },
   });
   return apiOk(updated);
 }

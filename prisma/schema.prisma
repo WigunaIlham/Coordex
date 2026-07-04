@@ -74,12 +74,6 @@ enum SwapStatus {
   DITOLAK
 }
 
-enum ActionItemStatus {
-  BELUM
-  PROGRESS
-  SELESAI
-}
-
 enum DocumentTemplateType {
   SURAT_UNDANGAN
   SURAT_IZIN
@@ -235,7 +229,6 @@ model User {
   generatedDocuments  GeneratedDocument[]
   createdMeetings     Meeting[]               @relation("MeetingCreatedBy")
   meetingAttendances  MeetingAttendee[]
-  actionItems         ActionItem[]
   dutyMemberships     ConsumptionDutyMember[]
   swapRequests        ConsumptionSwap[]       @relation("SwapRequester")
   swapTargets         ConsumptionSwap[]       @relation("SwapTarget")
@@ -272,7 +265,6 @@ model Task {
   createdBy   User             @relation("TaskCreatedBy", fields: [createdById], references: [id])
   assignees   TaskAssignee[]
   attachments TaskAttachment[]
-  actionItem  ActionItem?      @relation("ActionItemTask")
 
   @@index([status])
   @@index([createdById])
@@ -556,7 +548,6 @@ model Meeting {
 
   createdBy   User              @relation("MeetingCreatedBy", fields: [createdById], references: [id])
   attendees   MeetingAttendee[]
-  actionItems ActionItem[]
 
   @@index([scheduledAt])
   @@index([status])
@@ -574,24 +565,6 @@ model MeetingAttendee {
 
   @@id([meetingId, userId])
   @@map("meeting_attendees")
-}
-
-model ActionItem {
-  id           String           @id @default(cuid())
-  meetingId    String
-  description  String           @db.Text
-  assignedToId String
-  dueDate      DateTime?
-  status       ActionItemStatus @default(BELUM)
-  taskId       String?          @unique
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-
-  meeting    Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-  assignedTo User    @relation(fields: [assignedToId], references: [id])
-  task       Task?   @relation("ActionItemTask", fields: [taskId], references: [id], onDelete: SetNull)
-
-  @@map("action_items")
 }
 
 // ============================================================

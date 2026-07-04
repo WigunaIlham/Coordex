@@ -27,12 +27,6 @@ export default async function RapatDetailPage({
           user: { select: { id: true, name: true, avatarUrl: true, role: true } },
         },
       },
-      actionItems: {
-        orderBy: { createdAt: "asc" },
-        include: {
-          assignedTo: { select: { id: true, name: true, avatarUrl: true } },
-        },
-      },
     },
   });
   if (!meeting) redirect("/rapat");
@@ -89,14 +83,6 @@ export default async function RapatDetailPage({
           user: a.user,
         }))}
         minutes={meeting.minutes ?? ""}
-        actionItems={meeting.actionItems.map((ai) => ({
-          id: ai.id,
-          description: ai.description,
-          assignedToId: ai.assignedToId,
-          assignedTo: ai.assignedTo,
-          dueDate: ai.dueDate?.toISOString() ?? null,
-          status: ai.status,
-        }))}
       />
     </div>
   );

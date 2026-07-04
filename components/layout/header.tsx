@@ -53,7 +53,7 @@ export function Header({ user, unresolvedConflicts }: Props) {
             </Button>
           }
         />
-        <SheetContent side="left" className="flex w-52 max-w-[45vw] flex-col p-0">
+        <SheetContent side="left" className="flex w-64 max-w-[60vw] flex-col p-0">
           <SheetHeader className="border-b px-4 py-3">
             <SheetTitle className="text-left">Coordex</SheetTitle>
           </SheetHeader>

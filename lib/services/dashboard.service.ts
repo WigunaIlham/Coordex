@@ -48,32 +48,6 @@ export const getFinanceAggregate = unstable_cache(
   { revalidate: TTL_SECONDS, tags: ["dashboard", "finance"] },
 );
 
-/** Overloaded-count aggregation for Ketua's attention banner. */
-export type WorkloadRow = { userId: string; weighted: number | string | null };
-export const getWorkloadRows = unstable_cache(
-  async () =>
-    db.$queryRaw<WorkloadRow[]>`
-      SELECT
-        ta."userId" AS "userId",
-        SUM(
-          t."points"::float * CASE t."priority"
-            WHEN 'LOW' THEN 1.0
-            WHEN 'MEDIUM' THEN 1.5
-            WHEN 'HIGH' THEN 2.0
-            WHEN 'URGENT' THEN 3.0
-          END
-        ) AS "weighted"
-      FROM "task_assignees" ta
-      INNER JOIN "tasks" t ON t.id = ta."taskId"
-      INNER JOIN "users" u ON u.id = ta."userId"
-      WHERE u."isActive" = true
-        AND t."status" IN ('TODO','IN_PROGRESS','REVIEW')
-      GROUP BY ta."userId"
-    `,
-  ["dashboard:workload"],
-  { revalidate: TTL_SECONDS, tags: ["dashboard", "tasks"] },
-);
-
 /** Up to 3 upcoming meetings. */
 export const getUpcomingMeetings = unstable_cache(
   async () => {

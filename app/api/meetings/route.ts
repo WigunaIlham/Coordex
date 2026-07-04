@@ -37,7 +37,7 @@ export async function GET(req: Request) {
     orderBy: { scheduledAt: upcoming === "true" ? "asc" : "desc" },
     include: {
       createdBy: { select: { id: true, name: true } },
-      _count: { select: { attendees: true, actionItems: true } },
+      _count: { select: { attendees: true } },
     },
   });
   return apiOk(meetings);
