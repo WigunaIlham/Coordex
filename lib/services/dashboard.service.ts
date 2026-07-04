@@ -40,6 +40,17 @@ export const getUnresolvedConflictCount = unstable_cache(
   { revalidate: TTL_SECONDS, tags: ["dashboard", "conflicts"] },
 );
 
+/** Total non-cancelled meeting count — dipakai untuk KPI "Rapat" biar
+ *  angkanya tetap muncul walau semua sudah lewat. */
+export const getMeetingCount = unstable_cache(
+  async () =>
+    db.meeting.count({
+      where: { status: { not: "DIBATALKAN" } },
+    }),
+  ["dashboard:meeting-count"],
+  { revalidate: TTL_SECONDS, tags: ["dashboard", "meetings"] },
+);
+
 /** Aggregate finance balance (Pemasukan / Pengeluaran totals). */
 export const getFinanceAggregate = unstable_cache(
   async () =>

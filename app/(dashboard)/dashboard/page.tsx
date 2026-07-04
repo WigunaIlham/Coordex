@@ -24,6 +24,7 @@ import { db } from "@/lib/db";
 import { DashboardRefresher } from "./dashboard-refresher";
 import {
   getFinanceAggregate,
+  getMeetingCount,
   getRecentActivities,
   getTodayConsumptionDuty,
   getTodayPiketDuty,
@@ -124,6 +125,7 @@ export default async function DashboardPage() {
     financeAggr,
     activeSurvey,
     upcomingMeetings,
+    totalMeetings,
     todayDuty,
     todayPiket,
   ] = await Promise.all([
@@ -150,6 +152,7 @@ export default async function DashboardPage() {
         >([]),
     activeSurveyPromise,
     getUpcomingMeetings(),
+    getMeetingCount(),
     getTodayConsumptionDuty(todayKey),
     getTodayPiketDuty(todayKey),
   ]);
@@ -187,28 +190,23 @@ export default async function DashboardPage() {
     ? hasFutureMeeting
       ? `Terdekat: ${formatDateTime(nextMeeting.scheduledAt)}`
       : `Terakhir: ${formatDateTime(nextMeeting.scheduledAt)}`
-    : "Belum ada jadwal rapat";
-  const meetingKpiValue = hasFutureMeeting
-    ? String(upcomingMeetings.length)
-    : upcomingMeetings.length > 0
-      ? "—"
-      : "0";
+    : "Belum ada rapat";
 
   const kpis: Kpi[] = [
     {
       label: "Tugas Aktif",
-      value: String(myActive),
+      value: String(teamActive),
       icon: ClipboardList,
       accent: "emerald",
       href: "/tugas",
       hint:
         teamActive > 0
-          ? `Anda ${myActive} · Tim total ${teamActive}`
+          ? `Total tim · ${myActive} milik Anda`
           : "Belum ada tugas aktif",
     },
     {
-      label: hasFutureMeeting ? "Rapat Mendatang" : "Rapat",
-      value: meetingKpiValue,
+      label: "Rapat",
+      value: String(totalMeetings),
       icon: CalendarDays,
       accent: "blue",
       href: "/rapat",

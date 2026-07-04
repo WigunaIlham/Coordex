@@ -102,15 +102,42 @@ export function TaskForm({ open, onOpenChange, members, onSaved, editTask }: Pro
         priority: "MEDIUM",
         points: 3,
         dueDate: "",
-        assigneeIds: [],
+        // Default: semua anggota aktif sudah tercentang. Bikin flow "assign
+        // ke seluruh tim" jadi zero-click; kalau mau spesifik tinggal uncheck.
+        assigneeIds: members.map((m) => m.id),
       });
-      setSelectedAssignees([]);
+      setSelectedAssignees(members.map((m) => m.id));
     }
-  }, [open, editTask, reset]);
+  }, [open, editTask, reset, members]);
 
   function toggleAssignee(id: string) {
     setSelectedAssignees((prev) => {
       const next = prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id];
+      setValue("assigneeIds", next, { shouldValidate: true });
+      return next;
+    });
+  }
+
+  function selectAll() {
+    const ids = members.map((m) => m.id);
+    setSelectedAssignees(ids);
+    setValue("assigneeIds", ids, { shouldValidate: true });
+  }
+
+  function clearAll() {
+    setSelectedAssignees([]);
+    setValue("assigneeIds", [], { shouldValidate: true });
+  }
+
+  function selectByRole(rolePrefix: string) {
+    // rolePrefix contoh: "PDD", "ACARA", "HUMLOG"
+    const ids = members
+      .filter((m) => m.role.includes(rolePrefix))
+      .map((m) => m.id);
+    if (ids.length === 0) return;
+    // Merge dgn selection existing biar tetap bisa multi-divisi combine.
+    setSelectedAssignees((prev) => {
+      const next = Array.from(new Set([...prev, ...ids]));
       setValue("assigneeIds", next, { shouldValidate: true });
       return next;
     });
@@ -257,8 +284,58 @@ export function TaskForm({ open, onOpenChange, members, onSaved, editTask }: Pro
                 Anggota yang Ditugaskan <span className="text-destructive">*</span>
               </Label>
               <span className="text-[11px] tabular-nums text-muted-foreground">
-                {selectedAssignees.length} dipilih
+                {selectedAssignees.length} / {members.length} dipilih
               </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={selectAll}
+              >
+                Semua
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={clearAll}
+              >
+                Kosongkan
+              </Button>
+              <span className="mx-1 text-[10px] text-muted-foreground">
+                Divisi:
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => selectByRole("PDD")}
+              >
+                + PDD
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => selectByRole("ACARA")}
+              >
+                + Acara
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => selectByRole("HUMLOG")}
+              >
+                + HumLog
+              </Button>
             </div>
             <div className="max-h-52 space-y-1 overflow-y-auto rounded-lg border p-2">
               {members.map((m) => {
