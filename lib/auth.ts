@@ -21,27 +21,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(raw) {
-        const parsed = credentialsSchema.safeParse(raw);
-        if (!parsed.success) return null;
+        try {
+          const parsed = credentialsSchema.safeParse(raw);
+          if (!parsed.success) return null;
 
-        const { email, password } = parsed.data;
-        const user = await db.user.findUnique({
-          where: { email: email.toLowerCase() },
-        });
+          const { email, password } = parsed.data;
+          const user = await db.user.findUnique({
+            where: { email: email.toLowerCase() },
+          });
 
-        if (!user || !user.isActive) return null;
+          if (!user || !user.isActive) return null;
 
-        const valid = await bcrypt.compare(password, user.password);
-        if (!valid) return null;
+          const valid = await bcrypt.compare(password, user.password);
+          if (!valid) return null;
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          image: user.avatarUrl ?? null,
-          role: user.role,
-          isPasswordChanged: user.isPasswordChanged,
-        };
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.avatarUrl ?? null,
+            role: user.role,
+            isPasswordChanged: user.isPasswordChanged,
+          };
+        } catch (err) {
+          // Surface the real error to Vercel Function Logs — Auth.js swallows
+          // it into a generic "Configuration" error on the client otherwise.
+          console.error("[auth.authorize] error:", err);
+          throw err;
+        }
       },
     }),
   ],
