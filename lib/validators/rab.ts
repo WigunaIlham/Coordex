@@ -1,13 +1,40 @@
 import { z } from "zod";
 
+export const RabDivisiEnum = z.enum([
+  "UMUM",
+  "PDD",
+  "ACARA",
+  "HUMLOG",
+  "KONSUMSI",
+]);
+export const RabStatusEnum = z.enum(["DRAFT", "REVISI", "FIX"]);
+
+export const RAB_STATUS_LABELS = {
+  DRAFT: "Draft",
+  REVISI: "Sedang Direvisi",
+  FIX: "Sudah Fix",
+} as const;
+
+export const RAB_DIVISI_LABELS = {
+  UMUM: "Umum",
+  PDD: "PDD",
+  ACARA: "Acara",
+  HUMLOG: "HumLog",
+  KONSUMSI: "Konsumsi",
+} as const;
+
 export const createRabSchema = z.object({
   title: z.string().min(1, "Judul wajib").max(200),
   description: z.string().max(2000).optional().nullable(),
+  divisi: RabDivisiEnum.default("UMUM"),
+  status: RabStatusEnum.default("DRAFT"),
 });
 
 export const updateRabSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   description: z.string().max(2000).nullable().optional(),
+  divisi: RabDivisiEnum.optional(),
+  status: RabStatusEnum.optional(),
 });
 
 export const createCategorySchema = z.object({

@@ -1,8 +1,8 @@
 import { apiErr, apiOk } from "@/lib/api";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { hasPermission } from "@/lib/permissions";
 import { createRabSchema } from "@/lib/validators/rab";
-import { isAdminOrKetua } from "@/lib/permissions";
 
 export const runtime = "nodejs";
 
@@ -23,8 +23,8 @@ export async function GET() {
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.id) return apiErr("Unauthorized", 401);
-  if (!isAdminOrKetua(session.user.role) && session.user.role !== "BENDAHARA") {
-    return apiErr("Hanya Ketua/Bendahara yang dapat membuat RAB", 403);
+  if (!hasPermission(session.user.role, "rab.crud")) {
+    return apiErr("Tidak diizinkan", 403);
   }
 
   const body = await req.json().catch(() => null);
@@ -37,6 +37,8 @@ export async function POST(req: Request) {
     data: {
       title: parsed.data.title,
       description: parsed.data.description ?? null,
+      divisi: parsed.data.divisi,
+      status: parsed.data.status,
       createdById: session.user.id,
     },
     include: {

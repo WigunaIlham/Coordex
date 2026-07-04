@@ -1,11 +1,13 @@
 import { apiErr, apiOk } from "@/lib/api";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { hasPermission, isAdminOrKetua } from "@/lib/permissions";
+import type { Role } from "@/lib/generated/prisma/client";
 import { updateRabSchema } from "@/lib/validators/rab";
 
 export const runtime = "nodejs";
 
-async function loadOrAuth(id: string, userId: string, role: string) {
+async function loadOrAuth(id: string, userId: string, role: Role) {
   const rab = await db.rab.findUnique({
     where: { id },
     include: {
@@ -17,10 +19,12 @@ async function loadOrAuth(id: string, userId: string, role: string) {
     },
   });
   if (!rab) return { error: apiErr("RAB tidak ditemukan", 404), rab: null };
-  if (rab.createdById !== userId && role !== "KETUA" && role !== "BENDAHARA") {
-    return { error: apiErr("Tidak diizinkan", 403), rab: null };
-  }
-  return { error: null, rab };
+  // Semua user bisa view; edit hanya owner atau admin/ketua.
+  const canEdit =
+    rab.createdById === userId ||
+    isAdminOrKetua(role) ||
+    hasPermission(role, "rab.approve");
+  return { error: null, rab, canEdit };
 }
 
 export async function GET(
@@ -42,8 +46,9 @@ export async function PUT(
   const session = await auth();
   if (!session?.user?.id) return apiErr("Unauthorized", 401);
   const { id } = await params;
-  const { error } = await loadOrAuth(id, session.user.id, session.user.role);
+  const { error, canEdit } = await loadOrAuth(id, session.user.id, session.user.role);
   if (error) return error;
+  if (!canEdit) return apiErr("Tidak diizinkan", 403);
 
   const body = await req.json().catch(() => null);
   const parsed = updateRabSchema.safeParse(body);
@@ -60,8 +65,9 @@ export async function DELETE(
   const session = await auth();
   if (!session?.user?.id) return apiErr("Unauthorized", 401);
   const { id } = await params;
-  const { error } = await loadOrAuth(id, session.user.id, session.user.role);
+  const { error, canEdit } = await loadOrAuth(id, session.user.id, session.user.role);
   if (error) return error;
+  if (!canEdit) return apiErr("Tidak diizinkan", 403);
 
   await db.rab.delete({ where: { id } });
   return apiOk({ ok: true });

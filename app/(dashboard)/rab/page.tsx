@@ -3,8 +3,8 @@ import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/shared/page-header";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { hasPermission } from "@/lib/permissions";
 import { RabListClient } from "./rab-list-client";
-import { isAdminOrKetua } from "@/lib/permissions";
 
 export default async function RabPage() {
   const session = await auth();
@@ -24,6 +24,8 @@ export default async function RabPage() {
     id: r.id,
     title: r.title,
     description: r.description,
+    divisi: r.divisi,
+    status: r.status,
     createdAt: r.createdAt.toISOString(),
     createdBy: r.createdBy,
     categoryCount: r.categories.length,
@@ -35,16 +37,19 @@ export default async function RabPage() {
     ),
   }));
 
-  const canCreate =
-    isAdminOrKetua(session.user.role) || session.user.role === "BENDAHARA";
+  const canCreate = hasPermission(session.user.role, "rab.crud");
 
   return (
     <div>
       <PageHeader
         title="Rencana Anggaran Biaya (RAB)"
-        description="Buat dokumen RAB per kegiatan / periode. Auto-hitung subtotal & grand total."
+        description="Semua anggota bisa buat RAB. Tandai status Draft / Revisi / Fix biar tim tahu mana yang final."
       />
-      <RabListClient initial={summary} canCreate={canCreate} />
+      <RabListClient
+        initial={summary}
+        canCreate={canCreate}
+        currentUserId={session.user.id}
+      />
     </div>
   );
 }
