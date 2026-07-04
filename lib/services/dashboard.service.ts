@@ -48,11 +48,26 @@ export const getFinanceAggregate = unstable_cache(
   { revalidate: TTL_SECONDS, tags: ["dashboard", "finance"] },
 );
 
-/** Up to 3 upcoming meetings. */
+/**
+ * Up to 3 upcoming meetings. Kalau tidak ada meeting mendatang, fallback ke
+ * 3 rapat terakhir (past) supaya section dashboard tidak kosong sekedar
+ * karena jadwal habis. Ditandai dengan `isPast: true` supaya UI bisa
+ * treat berbeda.
+ */
+export type DashboardMeeting = {
+  id: string;
+  title: string;
+  scheduledAt: Date;
+  location: string | null;
+  status: import("@/lib/generated/prisma/client").MeetingStatus;
+  _count: { attendees: number };
+  isPast: boolean;
+};
+
 export const getUpcomingMeetings = unstable_cache(
-  async () => {
+  async (): Promise<DashboardMeeting[]> => {
     const now = new Date();
-    return db.meeting.findMany({
+    const upcoming = await db.meeting.findMany({
       where: {
         scheduledAt: { gte: now },
         status: { in: ["TERJADWAL", "BERLANGSUNG"] },
@@ -61,6 +76,16 @@ export const getUpcomingMeetings = unstable_cache(
       take: 3,
       include: { _count: { select: { attendees: true } } },
     });
+    if (upcoming.length > 0) {
+      return upcoming.map((m) => ({ ...m, isPast: false }));
+    }
+    const past = await db.meeting.findMany({
+      where: { scheduledAt: { lt: now } },
+      orderBy: { scheduledAt: "desc" },
+      take: 3,
+      include: { _count: { select: { attendees: true } } },
+    });
+    return past.map((m) => ({ ...m, isPast: true }));
   },
   ["dashboard:upcoming-meetings"],
   { revalidate: TTL_SECONDS, tags: ["dashboard", "meetings"] },
@@ -76,7 +101,7 @@ export const getTodayConsumptionDuty = unstable_cache(
     const end = new Date(start);
     end.setDate(end.getDate() + 1);
     return db.consumptionDuty.findFirst({
-      where: { date: { gte: start, lt: end } },
+      where: { date: { gte: start, lt: end }, type: "KONSUMSI" },
       include: {
         members: {
           include: {

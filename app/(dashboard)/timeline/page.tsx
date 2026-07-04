@@ -63,11 +63,31 @@ type ProgramCard = {
   id: string;
   name: string;
   description: string | null;
+  startDate: Date | null;
   targetDate: Date | null;
-  progress: number;
+  progressManual: number;
   status: string;
   picName: string;
 };
+
+/**
+ * Time-based auto progress = seberapa jauh kita di antara startDate dan
+ * targetDate. Kalau salah satu belum diisi, fallback ke null (UI akan
+ * menampilkan progress manual saja). Clamped 0–100.
+ */
+function computeAutoProgress(
+  startDate: Date | null,
+  targetDate: Date | null,
+): number | null {
+  if (!startDate || !targetDate) return null;
+  const total = targetDate.getTime() - startDate.getTime();
+  if (total <= 0) return null;
+  const elapsed = Date.now() - startDate.getTime();
+  const ratio = elapsed / total;
+  if (ratio <= 0) return 0;
+  if (ratio >= 1) return 100;
+  return Math.round(ratio * 100);
+}
 
 export default async function TimelinePage() {
   const session = await auth();
@@ -89,8 +109,9 @@ export default async function TimelinePage() {
       id: p.id,
       name: p.name,
       description: p.description,
+      startDate: p.startDate,
       targetDate: p.targetDate,
-      progress: p.progress,
+      progressManual: p.progress,
       status: p.status,
       picName: p.pic.name,
     });
@@ -147,7 +168,18 @@ export default async function TimelinePage() {
                     const isOverdue =
                       p.targetDate &&
                       new Date(p.targetDate) < new Date() &&
-                      p.progress < 100;
+                      p.progressManual < 100;
+                    const autoProgress = computeAutoProgress(
+                      p.startDate,
+                      p.targetDate,
+                    );
+                    // Timeline visual pakai auto-progress kalau ada; kalau tidak
+                    // ada rentang tanggal, jatuh balik ke progress manual.
+                    const shown = autoProgress ?? p.progressManual;
+                    const behindSchedule =
+                      autoProgress !== null &&
+                      p.progressManual + 5 < autoProgress &&
+                      p.progressManual < 100;
                     return (
                       <Card
                         key={p.id}
@@ -174,33 +206,62 @@ export default async function TimelinePage() {
                         <CardContent className="space-y-3 pt-0 text-xs">
                           <div>
                             <div className="mb-1 flex items-center justify-between text-muted-foreground">
-                              <span>Progress</span>
+                              <span>
+                                {autoProgress !== null
+                                  ? "Waktu berjalan"
+                                  : "Progress"}
+                              </span>
                               <span className="tabular-nums font-medium text-foreground">
-                                {p.progress}%
+                                {shown}%
                               </span>
                             </div>
-                            <div className="h-2 overflow-hidden rounded-full bg-muted">
+                            <div className="relative h-2 overflow-hidden rounded-full bg-muted">
                               <div
                                 className={cn(
                                   "h-full transition-all",
-                                  p.progress >= 100
+                                  shown >= 100
                                     ? "bg-emerald-500"
-                                    : p.progress >= 60
+                                    : shown >= 60
                                       ? "bg-blue-500"
-                                      : p.progress >= 30
+                                      : shown >= 30
                                         ? "bg-amber-500"
                                         : "bg-rose-500",
                                 )}
-                                style={{ width: `${Math.min(p.progress, 100)}%` }}
+                                style={{
+                                  width: `${Math.min(shown, 100)}%`,
+                                }}
                                 aria-hidden
                               />
+                              {/* Overlay: manual progress marker kalau berbeda */}
+                              {autoProgress !== null && (
+                                <span
+                                  className="absolute top-0 h-full w-0.5 bg-foreground/50"
+                                  style={{
+                                    left: `${Math.min(p.progressManual, 100)}%`,
+                                  }}
+                                  aria-label={`Progress laporan tim: ${p.progressManual}%`}
+                                />
+                              )}
                             </div>
+                            {autoProgress !== null && (
+                              <p
+                                className={cn(
+                                  "mt-1 text-[10px]",
+                                  behindSchedule
+                                    ? "text-destructive"
+                                    : "text-muted-foreground",
+                                )}
+                              >
+                                Laporan tim: {p.progressManual}%
+                                {behindSchedule && " · Tertinggal"}
+                              </p>
+                            )}
                           </div>
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground">
                             <span className="inline-flex items-center gap-1">
                               <Users2 className="h-3 w-3" /> {p.picName}
                             </span>
-                            {p.targetDate && (
+                            {(p.startDate || p.targetDate) && (
                               <span
                                 className={cn(
                                   "inline-flex items-center gap-1",
@@ -208,9 +269,12 @@ export default async function TimelinePage() {
                                 )}
                               >
                                 <CalendarClock className="h-3 w-3" />
-                                {formatDate(p.targetDate, {
-                                  dateStyle: "medium",
-                                })}
+                                {p.startDate && p.targetDate
+                                  ? `${formatDate(p.startDate, { dateStyle: "medium" })} → ${formatDate(p.targetDate, { dateStyle: "medium" })}`
+                                  : formatDate(
+                                      (p.targetDate ?? p.startDate)!,
+                                      { dateStyle: "medium" },
+                                    )}
                                 {isOverdue && " (lewat)"}
                               </span>
                             )}
@@ -243,14 +307,17 @@ export default async function TimelinePage() {
           </span>
         </div>
         <p className="mt-2">
-          Divisi ditentukan dari role PIC. Kelola program di{" "}
+          Divisi ditentukan dari role PIC. Bar warna = <b>waktu berjalan</b>{" "}
+          otomatis dari rentang tanggal (mulai → target). Garis tipis di
+          atasnya = <b>laporan tim</b> (input manual di halaman{" "}
           <Link
             href="/program"
             className="font-medium text-primary underline underline-offset-2"
           >
-            /program
+            Program
           </Link>
-          .
+          ). Kalau garis di kiri bar warna berarti tim tertinggal dari
+          jadwal.
         </p>
       </div>
     </div>

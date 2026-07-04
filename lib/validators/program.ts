@@ -13,17 +13,28 @@ export const ProgramStatusEnum = z.enum([
   "DIBATALKAN",
 ]);
 
+const optionalDate = z
+  .string()
+  .datetime({ offset: true })
+  .or(z.string().date())
+  .optional()
+  .nullable()
+  .transform((v) => (v ? new Date(v) : null));
+
+const updateOptionalDate = z
+  .string()
+  .datetime({ offset: true })
+  .or(z.string().date())
+  .nullable()
+  .optional()
+  .transform((v) => (v === undefined ? undefined : v === null ? null : new Date(v)));
+
 export const createProgramSchema = z.object({
   cycle: ProgramCycleEnum,
   name: z.string().min(1, "Nama wajib").max(200),
   description: z.string().max(2000).optional().nullable(),
-  targetDate: z
-    .string()
-    .datetime({ offset: true })
-    .or(z.string().date())
-    .optional()
-    .nullable()
-    .transform((v) => (v ? new Date(v) : null)),
+  startDate: optionalDate,
+  targetDate: optionalDate,
   picId: z.string().min(1, "PIC wajib dipilih"),
 });
 
@@ -31,13 +42,8 @@ export const updateProgramSchema = z.object({
   cycle: ProgramCycleEnum.optional(),
   name: z.string().min(1).max(200).optional(),
   description: z.string().max(2000).nullable().optional(),
-  targetDate: z
-    .string()
-    .datetime({ offset: true })
-    .or(z.string().date())
-    .nullable()
-    .optional()
-    .transform((v) => (v === undefined ? undefined : v === null ? null : new Date(v))),
+  startDate: updateOptionalDate,
+  targetDate: updateOptionalDate,
   picId: z.string().optional(),
   progress: z.number().int().min(0).max(100).optional(),
   status: ProgramStatusEnum.optional(),

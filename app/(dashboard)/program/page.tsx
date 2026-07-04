@@ -30,6 +30,7 @@ export default async function ProgramPage() {
     cycle: p.cycle,
     name: p.name,
     description: p.description,
+    startDate: p.startDate?.toISOString() ?? null,
     targetDate: p.targetDate?.toISOString() ?? null,
     progress: p.progress,
     status: p.status,

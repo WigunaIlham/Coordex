@@ -117,6 +117,7 @@ export default async function DashboardPage() {
 
   const [
     myActive,
+    teamActive,
     recentActivities,
     conflictCount,
     financeAggr,
@@ -124,10 +125,16 @@ export default async function DashboardPage() {
     upcomingMeetings,
     todayDuty,
   ] = await Promise.all([
-    // Uncached: user-specific "my active tasks".
+    // Per-user active tasks (mine).
     db.task.count({
       where: {
         assignees: { some: { userId } },
+        status: { in: ["TODO", "IN_PROGRESS", "REVIEW"] },
+      },
+    }),
+    // Team-wide active tasks (untuk konteks "berapa banyak PR tim lagi").
+    db.task.count({
+      where: {
         status: { in: ["TODO", "IN_PROGRESS", "REVIEW"] },
       },
     }),
@@ -171,6 +178,19 @@ export default async function DashboardPage() {
 
   const firstName = (session.user.name ?? "Tim").split(" ")[0];
 
+  const nextMeeting = upcomingMeetings[0];
+  const hasFutureMeeting = nextMeeting && !nextMeeting.isPast;
+  const nextMeetingHint = nextMeeting
+    ? hasFutureMeeting
+      ? `Terdekat: ${formatDateTime(nextMeeting.scheduledAt)}`
+      : `Terakhir: ${formatDateTime(nextMeeting.scheduledAt)}`
+    : "Belum ada jadwal rapat";
+  const meetingKpiValue = hasFutureMeeting
+    ? String(upcomingMeetings.length)
+    : upcomingMeetings.length > 0
+      ? "—"
+      : "0";
+
   const kpis: Kpi[] = [
     {
       label: "Tugas Aktif",
@@ -178,15 +198,18 @@ export default async function DashboardPage() {
       icon: ClipboardList,
       accent: "emerald",
       href: "/tugas",
-      hint: "Buka papan tugas",
+      hint:
+        teamActive > 0
+          ? `Anda ${myActive} · Tim total ${teamActive}`
+          : "Belum ada tugas aktif",
     },
     {
-      label: "Rapat Mendatang",
-      value: String(upcomingMeetings.length),
+      label: hasFutureMeeting ? "Rapat Mendatang" : "Rapat",
+      value: meetingKpiValue,
       icon: CalendarDays,
       accent: "blue",
       href: "/rapat",
-      hint: "Lihat jadwal",
+      hint: nextMeetingHint,
     },
     {
       label: "Saldo KKN",
@@ -325,7 +348,9 @@ export default async function DashboardPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base">Rapat Mendatang</CardTitle>
+                <CardTitle className="text-base">
+                  {hasFutureMeeting ? "Rapat Mendatang" : "Rapat Terakhir"}
+                </CardTitle>
                 <Link
                   href="/rapat"
                   className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
@@ -338,7 +363,8 @@ export default async function DashboardPage() {
               {upcomingMeetings.length === 0 ? (
                 <EmptyState
                   icon={CalendarDays}
-                  title="Tidak ada rapat mendatang"
+                  title="Belum ada rapat"
+                  description="Buat rapat pertama dari halaman Rapat."
                   compact
                 />
               ) : (
@@ -348,7 +374,14 @@ export default async function DashboardPage() {
                     href={`/rapat/${m.id}`}
                     className="group flex items-start gap-3 rounded-lg border p-3 transition-colors hover:border-primary/40 hover:bg-muted/50"
                   >
-                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
+                    <div
+                      className={cn(
+                        "grid h-9 w-9 shrink-0 place-items-center rounded-md",
+                        m.isPast
+                          ? "bg-muted text-muted-foreground"
+                          : "bg-primary/10 text-primary",
+                      )}
+                    >
                       <CalendarDays className="h-4 w-4" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -360,7 +393,15 @@ export default async function DashboardPage() {
                         {m.location ? ` · ${m.location}` : ""}
                       </p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        {m._count.attendees} peserta
+                        {m._count.attendees} peserta{" "}
+                        {m.isPast && (
+                          <Badge
+                            variant="outline"
+                            className="ml-1 h-4 border-muted-foreground/30 px-1 text-[9px] font-normal text-muted-foreground"
+                          >
+                            selesai
+                          </Badge>
+                        )}
                       </p>
                     </div>
                   </Link>

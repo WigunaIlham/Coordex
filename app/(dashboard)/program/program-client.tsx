@@ -43,6 +43,7 @@ type Program = {
   cycle: ProgramCycle;
   name: string;
   description: string | null;
+  startDate: string | null;
   targetDate: string | null;
   progress: number;
   status: ProgramStatus;
@@ -85,6 +86,7 @@ export function ProgramClient({
   const [cycle, setCycle] = useState<ProgramCycle>("SIKLUS_I");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [startDate, setStartDate] = useState("");
   const [targetDate, setTargetDate] = useState("");
   const [picId, setPicId] = useState(members[0]?.id ?? "");
 
@@ -110,6 +112,7 @@ export function ProgramClient({
         cycle,
         name,
         description: description || null,
+        startDate: startDate || null,
         targetDate: targetDate || null,
         picId,
       }),
@@ -123,6 +126,7 @@ export function ProgramClient({
     setPrograms((prev) => [json.data as Program, ...prev]);
     setName("");
     setDescription("");
+    setStartDate("");
     setTargetDate("");
     setOpen(false);
     toast.success("Program tersimpan");
@@ -299,6 +303,22 @@ export function ProgramClient({
                   disabled={saving}
                 />
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="p-start">Tanggal Mulai (untuk timeline)</Label>
+              <Input
+                id="p-start"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="h-10"
+                disabled={saving}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Bersama Target Tanggal, dipakai halaman Timeline untuk
+                menghitung progress berdasarkan waktu berjalan.
+              </p>
             </div>
 
             <div className="space-y-1.5">

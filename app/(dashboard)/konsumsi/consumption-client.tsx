@@ -71,12 +71,15 @@ type Swap = {
 
 type Member = { id: string; name: string; role: Role };
 
+type DutyType = "KONSUMSI" | "PIKET";
+
 type Props = {
   currentUserId: string;
   isKetua: boolean;
   initialDuties: Duty[];
   members: Member[];
   initialSwaps: Swap[];
+  dutyType?: DutyType;
 };
 
 const WEEKDAYS = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
@@ -87,7 +90,9 @@ export function ConsumptionClient({
   initialDuties,
   members,
   initialSwaps,
+  dutyType = "KONSUMSI",
 }: Props) {
+  const dutyLabel = dutyType === "PIKET" ? "piket" : "konsumsi";
   const router = useRouter();
   const [duties, setDuties] = useState(initialDuties);
   const [swaps, setSwaps] = useState(initialSwaps);
@@ -179,7 +184,11 @@ export function ConsumptionClient({
     const method = editorDutyId ? "PUT" : "POST";
     const body = editorDutyId
       ? { userIds: Array.from(editorSelected) }
-      : { date: editorDate, userIds: Array.from(editorSelected) };
+      : {
+          date: editorDate,
+          userIds: Array.from(editorSelected),
+          type: dutyType,
+        };
     const res = await fetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
@@ -451,7 +460,7 @@ export function ConsumptionClient({
                   {formatDate(detailDuty.date, { dateStyle: "full" })}
                 </DialogTitle>
                 <DialogDescription>
-                  {detailDuty.members.length} anggota bertugas menyiapkan konsumsi.
+                  {detailDuty.members.length} anggota bertugas {dutyLabel}.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-2">
@@ -534,7 +543,9 @@ export function ConsumptionClient({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {editorDutyId ? "Edit Jadwal" : "Buat Jadwal Konsumsi"}
+              {editorDutyId
+                ? "Edit Jadwal"
+                : `Buat Jadwal ${dutyType === "PIKET" ? "Piket" : "Konsumsi"}`}
             </DialogTitle>
             <DialogDescription>
               Pilih tanggal dan centang anggota yang bertugas hari itu.

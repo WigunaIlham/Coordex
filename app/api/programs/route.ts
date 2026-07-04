@@ -37,6 +37,7 @@ export async function POST(req: Request) {
       cycle: parsed.data.cycle,
       name: parsed.data.name,
       description: parsed.data.description ?? null,
+      startDate: parsed.data.startDate,
       targetDate: parsed.data.targetDate,
       picId: parsed.data.picId,
     },

@@ -74,6 +74,11 @@ enum SwapStatus {
   DITOLAK
 }
 
+enum DutyType {
+  KONSUMSI
+  PIKET
+}
+
 enum DocumentTemplateType {
   SURAT_UNDANGAN
   SURAT_IZIN
@@ -464,13 +469,15 @@ model KnowledgeFile {
 model ConsumptionDuty {
   id        String   @id @default(cuid())
   date      DateTime @db.Date
+  type      DutyType @default(KONSUMSI)
   notes     String?
   createdAt DateTime @default(now())
 
   members ConsumptionDutyMember[]
   swaps   ConsumptionSwap[]
 
-  @@unique([date])
+  @@unique([date, type])
+  @@index([type])
   @@map("consumption_duties")
 }
 
@@ -576,6 +583,7 @@ model Program {
   cycle       ProgramCycle
   name        String
   description String?       @db.Text
+  startDate   DateTime?
   targetDate  DateTime?
   progress    Int           @default(0)
   status      ProgramStatus @default(RENCANA)

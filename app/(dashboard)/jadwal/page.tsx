@@ -7,6 +7,8 @@ import { ConsumptionClient } from "@/app/(dashboard)/konsumsi/consumption-client
 import { isAdminOrKetua } from "@/lib/permissions";
 import { JadwalTabs } from "./jadwal-tabs";
 
+type DutyType = "KONSUMSI" | "PIKET";
+
 export default async function JadwalPage({
   searchParams,
 }: {
@@ -15,7 +17,7 @@ export default async function JadwalPage({
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
   const { tab } = await searchParams;
-  const activeTab = tab === "piket" ? "piket" : "konsumsi";
+  const activeTab: DutyType = tab === "piket" ? "PIKET" : "KONSUMSI";
 
   const now = new Date();
   const fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -25,6 +27,7 @@ export default async function JadwalPage({
     db.consumptionDuty.findMany({
       where: {
         date: { gte: fromDate },
+        type: activeTab,
         members: { some: {} },
       },
       orderBy: { date: "asc" },
@@ -44,9 +47,10 @@ export default async function JadwalPage({
     db.consumptionSwap.findMany({
       where:
         isAdminOrKetua(session.user.role)
-          ? { status: "PENDING" }
+          ? { status: "PENDING", duty: { type: activeTab } }
           : {
               status: "PENDING",
+              duty: { type: activeTab },
               OR: [
                 { requesterId: session.user.id },
                 { targetId: session.user.id },
@@ -66,37 +70,28 @@ export default async function JadwalPage({
         title="Jadwal"
         description="Jadwal konsumsi & piket harian tim."
       />
-      <JadwalTabs active={activeTab} />
-      {activeTab === "konsumsi" ? (
-        <ConsumptionClient
-          currentUserId={session.user.id}
-          isKetua={isAdminOrKetua(session.user.role)}
-          initialDuties={duties.map((d) => ({
-            id: d.id,
-            date: d.date.toISOString(),
-            members: d.members.map((m) => m.user),
-          }))}
-          members={members}
-          initialSwaps={swaps.map((s) => ({
-            id: s.id,
-            requesterId: s.requesterId,
-            targetId: s.targetId,
-            requester: s.requester,
-            target: s.target,
-            duty: { id: s.duty.id, date: s.duty.date.toISOString() },
-            reason: s.reason,
-          }))}
-        />
-      ) : (
-        <div className="mt-4 rounded-xl border border-dashed bg-muted/30 p-8 text-center">
-          <p className="text-lg font-semibold">Jadwal Piket</p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Fitur jadwal piket sedang dalam pengembangan. Sementara ini gunakan
-            tab <b>Konsumsi</b> — struktur rotasinya sama, tinggal beri catatan
-            &quot;Piket&quot; di deskripsi kegiatan kalau perlu dibedakan.
-          </p>
-        </div>
-      )}
+      <JadwalTabs active={activeTab === "PIKET" ? "piket" : "konsumsi"} />
+      <ConsumptionClient
+        key={activeTab}
+        dutyType={activeTab}
+        currentUserId={session.user.id}
+        isKetua={isAdminOrKetua(session.user.role)}
+        initialDuties={duties.map((d) => ({
+          id: d.id,
+          date: d.date.toISOString(),
+          members: d.members.map((m) => m.user),
+        }))}
+        members={members}
+        initialSwaps={swaps.map((s) => ({
+          id: s.id,
+          requesterId: s.requesterId,
+          targetId: s.targetId,
+          requester: s.requester,
+          target: s.target,
+          duty: { id: s.duty.id, date: s.duty.date.toISOString() },
+          reason: s.reason,
+        }))}
+      />
     </div>
   );
 }
