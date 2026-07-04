@@ -26,6 +26,7 @@ import {
   getFinanceAggregate,
   getRecentActivities,
   getTodayConsumptionDuty,
+  getTodayPiketDuty,
   getUnresolvedConflictCount,
   getUpcomingMeetings,
 } from "@/lib/services/dashboard.service";
@@ -124,6 +125,7 @@ export default async function DashboardPage() {
     activeSurvey,
     upcomingMeetings,
     todayDuty,
+    todayPiket,
   ] = await Promise.all([
     // Per-user active tasks (mine).
     db.task.count({
@@ -149,6 +151,7 @@ export default async function DashboardPage() {
     activeSurveyPromise,
     getUpcomingMeetings(),
     getTodayConsumptionDuty(todayKey),
+    getTodayPiketDuty(todayKey),
   ]);
 
   const responses = activeSurvey?.responses ?? [];
@@ -419,12 +422,45 @@ export default async function DashboardPage() {
                 <EmptyState
                   icon={Utensils}
                   title="Belum ada jadwal"
-                  description="Jadwal konsumsi hari ini belum di-generate."
+                  description="Jadwal konsumsi hari ini belum dibuat."
                   compact
                 />
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {todayDuty.members.map((m) => (
+                    <div
+                      key={m.userId}
+                      className="flex items-center gap-2 rounded-full border bg-muted/30 px-2 py-1 text-xs"
+                    >
+                      <Avatar className="h-5 w-5">
+                        <AvatarImage src={m.user.avatarUrl ?? undefined} />
+                        <AvatarFallback className="text-[8px]">
+                          {getInitials(m.user.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      {m.user.name}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Piket Hari Ini</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!todayPiket || todayPiket.members.length === 0 ? (
+                <EmptyState
+                  icon={ClipboardList}
+                  title="Belum ada jadwal"
+                  description="Jadwal piket hari ini belum dibuat."
+                  compact
+                />
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {todayPiket.members.map((m) => (
                     <div
                       key={m.userId}
                       className="flex items-center gap-2 rounded-full border bg-muted/30 px-2 py-1 text-xs"

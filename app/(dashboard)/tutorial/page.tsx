@@ -5,14 +5,17 @@ import {
   CalendarDays,
   ClipboardList,
   FileText,
+  Frown,
   GraduationCap,
   ListChecks,
-  MessageSquare,
+  MessagesSquare,
   Route as RouteIcon,
   ShieldAlert,
   Sparkles,
   Users2,
+  Utensils,
   Wallet,
+  type LucideIcon,
 } from "lucide-react";
 
 import { ROLE_LABELS } from "@/components/layout/role-label";
@@ -21,186 +24,282 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { auth } from "@/lib/auth";
 import type { Role } from "@/lib/generated/prisma/client";
-import { cn } from "@/lib/utils";
 
-type TutorialStep = {
-  icon: typeof BookOpen;
+type Guide = {
+  icon: LucideIcon;
   title: string;
-  body: string;
-  href?: string;
-  hrefLabel?: string;
+  href: string;
+  intro: string;
+  steps: string[];
+  tips?: string[];
 };
 
-// Umum — semua role melihat kartu ini
-const UMUM_STEPS: TutorialStep[] = [
-  {
-    icon: Sparkles,
-    title: "Login pertama kali",
-    body:
-      "Gunakan email + password default (12345678). Setelah masuk, ganti password segera dari menu profil supaya akun kamu aman.",
-    href: "/profil",
-    hrefLabel: "Buka profil",
-  },
+const GUIDES: Guide[] = [
   {
     icon: ClipboardList,
-    title: "Dashboard = ringkasan harian",
-    body:
-      "Dashboard menampilkan tugas aktif kamu, rapat mendatang, jadwal konsumsi hari ini, dan aktivitas tim terbaru. Data otomatis refresh setiap 30 detik.",
+    title: "Dashboard",
     href: "/dashboard",
-    hrefLabel: "Buka dashboard",
+    intro: "Titik awal setiap kali kamu login. Semua ringkasan tim ada di sini.",
+    steps: [
+      "Buka menu Dashboard di sidebar atau navbar bawah.",
+      'Lihat KPI di atas: "Tugas Aktif" (personal + tim), "Rapat", "Saldo KKN" (Ketua), dan "Indeks Stres Tim" (Ketua).',
+      "Scroll ke bawah untuk melihat Aktivitas Terbaru, Rapat Mendatang, dan jadwal Konsumsi + Piket hari ini.",
+      "Klik kartu apapun untuk masuk ke halaman detailnya.",
+    ],
+    tips: [
+      "Halaman ini auto-refresh setiap 30 detik — tidak perlu reload manual.",
+    ],
   },
   {
     icon: ListChecks,
-    title: "Papan Tugas (Kanban)",
-    body:
-      "Semua tugas kamu ada di papan Tugas. Geser (drag) kartu antar kolom untuk ubah status: To Do → In Progress → Review → Done. Bisa juga di HP dengan tap-tahan.",
+    title: "Tugas (Kanban)",
     href: "/tugas",
-    hrefLabel: "Buka tugas",
-  },
-  {
-    icon: CalendarDays,
-    title: "Rapat & Jadwal",
-    body:
-      "Lihat jadwal rapat mendatang di /rapat. Jadwal konsumsi & piket rotasi ada di /jadwal — kamu bisa ajukan tukar jadwal kalau berhalangan.",
-    href: "/rapat",
-    hrefLabel: "Buka rapat",
+    intro: "Papan kanban 4 kolom: To Do → In Progress → Review → Done.",
+    steps: [
+      'Buka menu "Tugas".',
+      'Klik tombol "Tugas Baru" (kanan atas) untuk membuat tugas: judul, deskripsi, prioritas, poin, tenggat, dan siapa yang ditugaskan.',
+      "Geser (drag) kartu antar kolom untuk update status. Di HP: tap-tahan ~200ms lalu geser.",
+      "Klik kartu untuk lihat detail. Edit / hapus dari sini (Ketua/Admin bisa hapus tugas orang lain).",
+      "Filter dengan search box, filter anggota, dan filter prioritas di toolbar atas.",
+    ],
+    tips: [
+      "Icon 🗑 sudut kanan-atas kartu = quick delete (khusus admin/ketua).",
+      "Prioritas dan poin dipakai untuk hitung beban kerja di dashboard.",
+    ],
   },
   {
     icon: ClipboardList,
-    title: "Aktivitas — timeline tim",
-    body:
-      "Posting update singkat setelah selesai kegiatan (upload foto, catatan, atau milestone). Ini jadi jejak kolektif yang bisa dipakai buat LPJ nanti.",
+    title: "Aktivitas",
     href: "/aktivitas",
-    hrefLabel: "Buka aktivitas",
-  },
-  {
-    icon: BookOpen,
-    title: "Repositori — pusat file",
-    body:
-      "Semua file penting (proposal, undangan, LPJ, materi) di-share di Repositori. Cari dulu di sini sebelum tanya ke grup.",
-    href: "/repositori",
-    hrefLabel: "Buka repositori",
+    intro: "Timeline update tim — apapun yang dikerjakan hari ini diposting di sini.",
+    steps: [
+      'Klik "Tambah Update" untuk posting singkat.',
+      'Isi judul, konten, kategori (Kegiatan/Rapat/Publikasi/dll), dan centang "Tandai Milestone" kalau penting.',
+      'Klik "Pilih" untuk masuk ke mode multi-select — bisa hapus beberapa aktivitas sekaligus.',
+      'Filter pakai kategori, penulis, atau "Milestone saja" di toolbar.',
+    ],
+    tips: [
+      "Update aktivitas jadi bahan mentah LPJ nanti — jangan malas posting.",
+    ],
   },
   {
     icon: RouteIcon,
-    title: "Timeline divisi",
-    body:
-      "Cek roadmap program per divisi (PDD, Acara, HumLog, Konsumsi) + progress-nya di halaman Timeline. Berguna buat lihat apa yang lagi digarap tim lain.",
+    title: "Timeline Divisi",
     href: "/timeline",
-    hrefLabel: "Buka timeline",
+    intro: "Peta jalan program per divisi dengan progress otomatis dari waktu.",
+    steps: [
+      "Buka Timeline dari sidebar.",
+      "Kartu program dikelompokkan per divisi (PDD / Acara / HumLog / Konsumsi / Umum) — divisi otomatis dari role PIC.",
+      "Bar warna = waktu berjalan otomatis, dihitung dari Tanggal Mulai → Target Tanggal.",
+      "Garis tipis di atas bar = progress manual yang di-input tim (dari halaman Program).",
+      "Kalau garis tipis di kiri bar warna → tim tertinggal jadwal (label 'Tertinggal').",
+    ],
+    tips: [
+      "Untuk auto-progress jalan, program harus punya Tanggal Mulai + Target Tanggal (isi di /program).",
+    ],
   },
   {
-    icon: MessageSquare,
-    title: "Kalau ada masalah",
-    body:
-      "Kesulitan dengan tugas / konflik kecil di tim / merasa overload → laporkan lewat menu di bagian bawah sidebar (Isu Tim). Aman dan bisa anonim.",
+    icon: CalendarDays,
+    title: "Rapat",
+    href: "/rapat",
+    intro: "Jadwalkan rapat, kelola absensi, dan tulis notulen.",
+    steps: [
+      'Klik "Rapat Baru" untuk buka modal buat rapat.',
+      "Isi judul, waktu, lokasi (opsional), agenda (opsional), dan centang peserta yang diundang.",
+      'Klik "Buat Rapat" — jadwal muncul di list.',
+      "Klik rapat untuk buka detail. Di sana: ubah status (Terjadwal/Berlangsung/Selesai/Dibatalkan), tandai absensi peserta, tulis notulen.",
+      'Rapat dengan status "Dibatalkan" tetap muncul di Riwayat sebagai catatan. Untuk hapus permanen, pakai "Zona Bahaya" di detail (Ketua/Admin saja).',
+    ],
+    tips: [
+      "Admin/Super Admin otomatis dikeluarkan dari daftar peserta — admin bukan bagian operasional.",
+    ],
+  },
+  {
+    icon: Utensils,
+    title: "Jadwal (Konsumsi + Piket)",
+    href: "/jadwal",
+    intro: "Rotasi tugas harian tim — dibagi tab Konsumsi dan Piket.",
+    steps: [
+      "Buka menu Jadwal → default tab Konsumsi.",
+      "Kalender bulan penuh muncul; klik hari kosong untuk buat jadwal (khusus Ketua/Admin).",
+      "Pilih tanggal + centang anggota yang bertugas → klik Buat Jadwal.",
+      'Klik hari yang ada avatar untuk lihat detail. Anggota bisa klik "Ajukan Tukar" kalau tidak bisa bertugas.',
+      "Ketua/Admin approve permintaan tukar via card di atas kalender.",
+      'Ganti ke tab "Piket" untuk urus jadwal piket — sistemnya identik.',
+    ],
+    tips: [
+      "Sel kalender hijau = kamu bertugas hari itu. Badge 'Anda' muncul di sudut.",
+    ],
+  },
+  {
+    icon: Wallet,
+    title: "Keuangan",
+    href: "/keuangan",
+    intro: "Catat pemasukan/pengeluaran + upload struk. Semua anggota bisa input.",
+    steps: [
+      'Klik "Tambah Transaksi" — pilih tipe (Pemasukan/Pengeluaran), nominal, kategori, tanggal, dan deskripsi.',
+      "Upload foto struk (opsional tapi disarankan).",
+      "Kirim → status awal PENDING sampai Ketua approve.",
+      "Ketua bisa approve/reject via halaman keuangan.",
+      "Saldo real-time muncul di kartu atas dan di Dashboard KPI.",
+    ],
+  },
+  {
+    icon: FileText,
+    title: "RAB (Rencana Anggaran Biaya)",
+    href: "/rab",
+    intro: "Susun rencana anggaran per kegiatan. Semua anggota bisa buat & edit RAB sendiri.",
+    steps: [
+      'Klik "RAB Baru" — kasih judul dan deskripsi kegiatan.',
+      "Tambah kategori (misal Konsumsi, Transport, ATK) → tambah item dalam kategori (nama, satuan, quantity, harga).",
+      "Total per kategori dan total keseluruhan dihitung otomatis.",
+      'Klik "Ajukan" untuk kirim ke Ketua untuk di-approve.',
+      "Setelah approve, RAB bisa di-export ke Excel/PDF untuk lampiran proposal.",
+    ],
+  },
+  {
+    icon: FileText,
+    title: "Dokumen",
+    href: "/dokumen",
+    intro: "Generate surat & dokumen formal dari template.",
+    steps: [
+      'Klik "Buat Dokumen" untuk buka modal.',
+      "Pilih template: Surat Undangan / Notulen Rapat / Daftar Hadir / LPJ.",
+      "Isi form yang muncul (field tergantung template). Notulen Rapat pakai checklist peserta.",
+      "Klik Generate PDF atau Generate DOCX — file otomatis ter-download.",
+      "Dokumen tersimpan di list — bisa re-download atau hapus kapan saja.",
+    ],
+    tips: [
+      "Kop surat sudah otomatis include: UIN Sunan Gunung Djati, program KKN Sisdamas, dan info lokasi.",
+    ],
+  },
+  {
+    icon: BookOpen,
+    title: "Repositori",
+    href: "/repositori",
+    intro: "Pusat file semua dokumen tim (proposal, materi, foto, dll).",
+    steps: [
+      'Klik "Upload File" — pilih file dari device, kasih judul + kategori.',
+      "File di-upload ke Supabase Storage; link private (butuh signed URL untuk download).",
+      "Cari file pakai search bar atau filter kategori.",
+      "Klik file untuk download. Hapus file (owner atau admin) via icon 🗑.",
+    ],
+  },
+  {
+    icon: MessagesSquare,
+    title: "Q&A / Diskusi Tim",
+    href: "/qna",
+    intro: "Forum diskusi terbuka — pertanyaan, ide, atau bahas apapun.",
+    steps: [
+      'Klik "Tanya / Diskusi Baru" — kasih judul + detail.',
+      "Setelah posting, anggota lain bisa jawab langsung di bawahnya.",
+      "Kamu bisa hapus pertanyaan/jawaban sendiri (Ketua/Admin bisa hapus milik siapapun).",
+      "Semua diskusi kelihatan oleh semua anggota — bukan private message.",
+    ],
+    tips: [
+      "Kalau butuh diskusi rahasia (misal konflik personal), pakai menu Laporkan Masalah di sidebar bawah.",
+    ],
+  },
+  {
+    icon: Sparkles,
+    title: "Program",
+    href: "/program",
+    intro: "Rencana program per siklus KKN — jadi data mentah untuk Timeline.",
+    steps: [
+      'Klik "Program Baru" — pilih siklus, isi nama, PIC (person in charge), Tanggal Mulai, Target Tanggal.',
+      "Update progress manual (%) secara berkala di halaman ini.",
+      "Progress muncul di Timeline sebagai garis tipis di atas bar waktu.",
+      "Ubah status (Rencana / Berlangsung / Selesai / Dibatalkan) sesuai kondisi.",
+    ],
+  },
+  {
+    icon: Users2,
+    title: "Pemangku Kepentingan",
+    href: "/pemangku",
+    intro: "CRM kecil untuk track komunikasi dengan pihak eksternal.",
+    steps: [
+      "Buat stakeholder baru: nama pihak/lembaga, tipe (RT/RW/tokoh/mitra), kontak.",
+      "Catat riwayat kontak: kapan, siapa yang komunikasi, topik, hasil.",
+      "Kolom kontak history berguna untuk continuity — anggota baru bisa lihat rekam jejak.",
+    ],
+  },
+  {
+    icon: Frown,
+    title: "Survei Stres",
+    href: "/stres",
+    intro: "Survei wellbeing mingguan — bantu Ketua monitor kesehatan mental tim.",
+    steps: [
+      "Kalau ada survei aktif, notifikasi muncul di dashboard (banner biru).",
+      "Klik untuk isi — 5-10 pertanyaan skala Likert. Anonim.",
+      "Ketua lihat indeks stres tim di dashboard, tidak lihat jawaban individu.",
+    ],
+  },
+  {
+    icon: ShieldAlert,
+    title: "Laporkan Masalah & Pusat Konflik",
     href: "/konflik/baru",
-    hrefLabel: "Laporkan masalah",
+    intro: "Kalau ada masalah tim / konflik personal — laporkan lewat sini.",
+    steps: [
+      'Buka menu "Laporkan Masalah" di sidebar bawah.',
+      "Isi kategori (Beban Kerja / Komunikasi / Konflik Personal / dll), judul, dan detail.",
+      "Bisa dilaporkan anonim atau dengan nama.",
+      "Ketua/Admin lihat di Pusat Konflik dan tindak lanjut (status: OPEN / DISKUSI / SELESAI).",
+      "Catatan resolusi Ketua kelihatan oleh pelapor sebagai konfirmasi tindak lanjut.",
+    ],
+    tips: [
+      "Jangan ragu pakai fitur ini — lebih baik ditangani dini daripada meledak di lapangan.",
+    ],
   },
 ];
 
-// Role-specific tips — ditampilkan di atas UMUM_STEPS
-const ROLE_STEPS: Partial<Record<Role, TutorialStep[]>> = {
+// Tips khusus per role — muncul di atas panduan modul.
+const ROLE_TIPS: Partial<Record<Role, { title: string; body: string }[]>> = {
   SUPER_ADMIN: [
     {
-      icon: Users2,
-      title: "Kelola pengguna",
+      title: "Kelola Pengguna",
       body:
-        "Sebagai Super Admin, kamu bisa buat/edit/nonaktifkan akun anggota di /admin/pengguna. Reset password anggota juga dari sini.",
-      href: "/admin/pengguna",
-      hrefLabel: "Kelola pengguna",
+        "Sebagai Super Admin, buka /admin/pengguna untuk buat/edit/nonaktifkan akun. Reset password anggota juga dari sini.",
+    },
+    {
+      title: "Kamu tidak masuk absensi",
+      body:
+        "Admin otomatis dikeluarkan dari daftar peserta rapat & rotasi konsumsi/piket. Kamu di sini sebagai operator, bukan anggota tim operasional.",
     },
   ],
   KETUA: [
     {
-      icon: Users2,
-      title: "Perhatian Ketua",
+      title: "Approval flow",
       body:
-        "Panel dashboard menampilkan warning kalau ada konflik yang belum diselesaikan. Cek berkala.",
-      href: "/konflik",
-      hrefLabel: "Pusat konflik",
+        "Bendahara/anggota input transaksi → statusnya PENDING → kamu review + approve/reject. Sama untuk RAB dan permintaan tukar jadwal.",
     },
     {
-      icon: Wallet,
-      title: "Approve keuangan & RAB",
+      title: "Isu tim",
       body:
-        "Bendahara input transaksi → kamu approve. Sama untuk RAB per divisi. Semua approval log-nya masuk audit trail.",
-      href: "/keuangan",
-      hrefLabel: "Buka keuangan",
-    },
-    {
-      icon: ShieldAlert,
-      title: "Pusat konflik",
-      body:
-        "Anggota bisa laporkan masalah dan kamu (dengan admin) yang decide. Ada status: OPEN → DISKUSI → SELESAI. Isi catatan resolusi biar pelapor tahu tindak lanjutnya.",
-      href: "/konflik",
-      hrefLabel: "Buka konflik",
+        "Perhatikan dashboard warning + Pusat Konflik. Semua laporan masalah masuk ke sini — respons cepat penting untuk moral tim.",
     },
   ],
   SEKRETARIS: [
     {
-      icon: FileText,
-      title: "Bikin dokumen resmi",
+      title: "Dokumen otomatis",
       body:
-        "Surat undangan, notulen rapat, daftar hadir, dan LPJ bisa di-generate dari template di /dokumen. Isi form → download PDF/DOCX.",
-      href: "/dokumen",
-      hrefLabel: "Buka dokumen",
+        "Kamu paling sering pakai modul Dokumen — surat undangan, notulen, daftar hadir, LPJ. Semua sudah ada template resmi.",
     },
     {
-      icon: CalendarDays,
       title: "Kelola rapat",
       body:
-        "Buat jadwal rapat, kelola absensi, tulis notulen. Semua data ini bisa langsung di-generate jadi dokumen notulen resmi.",
-      href: "/rapat",
-      hrefLabel: "Buka rapat",
+        "Buat rapat, kelola absensi, tulis notulen. Data notulen langsung bisa di-generate jadi PDF/DOCX resmi.",
     },
   ],
   BENDAHARA: [
     {
-      icon: Wallet,
-      title: "Catat transaksi",
+      title: "Alur keuangan harian",
       body:
-        "Input pemasukan/pengeluaran + upload struk (foto). Ketua yang approve. Saldo real-time muncul di dashboard.",
-      href: "/keuangan",
-      hrefLabel: "Buka keuangan",
+        "Input transaksi + upload struk → tunggu approve Ketua → saldo real-time terupdate di dashboard.",
     },
     {
-      icon: FileText,
-      title: "Susun RAB per kegiatan",
+      title: "Susun RAB",
       body:
-        "Kategori → item → nominal. Setelah lengkap, ajukan ke Ketua untuk di-approve.",
-      href: "/rab",
-      hrefLabel: "Buka RAB",
-    },
-  ],
-  PJ_PDD: [
-    {
-      icon: Sparkles,
-      title: "Kelola tim PDD",
-      body:
-        "Buat tugas untuk anggota PDD (upload foto kegiatan, edit dokumentasi, dsb). Media kamera → langsung ke modul Media.",
-      href: "/media",
-      hrefLabel: "Buka media",
-    },
-  ],
-  PJ_ACARA: [
-    {
-      icon: Sparkles,
-      title: "Kelola tim Acara",
-      body:
-        "Rencanakan program di modul Program (tema, target, PIC, tanggal). Progress-nya kamu update sendiri. Muncul otomatis di Timeline.",
-      href: "/program",
-      hrefLabel: "Buka program",
-    },
-  ],
-  PJ_HUMLOG: [
-    {
-      icon: Sparkles,
-      title: "Kelola tim HumLog",
-      body:
-        "Modul Pemangku Kepentingan untuk track komunikasi dengan pihak eksternal (RT/RW, tokoh masyarakat, mitra). Setiap kontak dicatat sebagai history.",
-      href: "/pemangku",
-      hrefLabel: "Buka pemangku",
+        "Buat RAB per kegiatan sebelum eksekusi. Setelah approve, export ke Excel untuk lampiran proposal.",
     },
   ],
 };
@@ -210,14 +309,13 @@ export default async function TutorialPage() {
   if (!session?.user?.id) redirect("/login");
   const role = session.user.role;
   const roleLabel = ROLE_LABELS[role];
-
-  const roleSteps = ROLE_STEPS[role] ?? [];
+  const roleTips = ROLE_TIPS[role] ?? [];
 
   return (
     <div>
       <PageHeader
-        title="Tutorial Aplikasi"
-        description="Panduan cepat cara pakai Coordex — disesuaikan dengan role kamu."
+        title="Tutorial"
+        description="Panduan step-by-step semua fitur Coordex."
       />
 
       <div className="mb-6 flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
@@ -227,84 +325,111 @@ export default async function TutorialPage() {
         <div className="min-w-0 flex-1 text-sm">
           <p className="font-medium">Selamat datang di Coordex!</p>
           <p className="mt-1 text-muted-foreground">
-            Kamu login sebagai <Badge variant="outline">{roleLabel}</Badge> —
-            berikut fitur yang paling sering dipakai role kamu. Tips tambahan
-            untuk semua orang ada di bawah.
+            Kamu login sebagai <Badge variant="outline">{roleLabel}</Badge>.
+            Baca panduan role di bawah dulu, lalu scroll untuk panduan
+            langkah-per-langkah setiap fitur.
           </p>
         </div>
       </div>
 
-      {roleSteps.length > 0 && (
+      {roleTips.length > 0 && (
         <section aria-labelledby="role-tips" className="mb-8">
           <h2
             id="role-tips"
             className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground"
           >
-            <Sparkles className="h-4 w-4" /> Untuk role {roleLabel}
+            <Sparkles className="h-4 w-4" /> Panduan khusus {roleLabel}
           </h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {roleSteps.map((s, i) => (
-              <StepCard key={`role-${i}`} step={s} accent="primary" />
+          <div className="grid gap-3 sm:grid-cols-2">
+            {roleTips.map((t) => (
+              <Card key={t.title} className="border-primary/30 bg-primary/5">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">{t.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <p className="text-xs text-muted-foreground">{t.body}</p>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </section>
       )}
 
-      <section aria-labelledby="general-tips">
+      <section aria-labelledby="modul-guides">
         <h2
-          id="general-tips"
+          id="modul-guides"
           className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground"
         >
-          <BookOpen className="h-4 w-4" /> Panduan umum untuk semua anggota
+          <BookOpen className="h-4 w-4" /> Panduan per modul
         </h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {UMUM_STEPS.map((s, i) => (
-            <StepCard key={`umum-${i}`} step={s} accent="neutral" />
+        <div className="space-y-4">
+          {GUIDES.map((g) => (
+            <GuideCard key={g.title} guide={g} />
           ))}
         </div>
       </section>
 
       <div className="mt-10 rounded-lg border bg-muted/30 p-4 text-xs text-muted-foreground">
-        Butuh bantuan lebih? Konten tutorial ini masih placeholder — akan
-        di-update dengan panduan lengkap + screenshot per fitur. Kalau ada
-        pertanyaan, tanyakan ke Ketua atau Sekretaris.
+        Ada fitur yang belum jelas atau ada bug? Tanyakan di menu{" "}
+        <Link
+          href="/qna"
+          className="font-medium text-primary underline underline-offset-2"
+        >
+          Q&A
+        </Link>{" "}
+        — semua anggota bisa lihat & jawab.
       </div>
     </div>
   );
 }
 
-function StepCard({
-  step,
-  accent,
-}: {
-  step: TutorialStep;
-  accent: "primary" | "neutral";
-}) {
-  const Icon = step.icon;
+function GuideCard({ guide }: { guide: Guide }) {
+  const Icon = guide.icon;
   return (
-    <Card
-      className={cn(
-        "transition-colors",
-        accent === "primary" && "border-primary/30 bg-primary/5",
-      )}
-    >
-      <CardHeader className="pb-2">
-        <div className="mb-1 flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary">
-          <Icon className="h-4 w-4" />
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-start gap-3">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
+            <Icon className="h-4 w-4" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-baseline gap-x-2">
+              <CardTitle className="text-base leading-snug">
+                {guide.title}
+              </CardTitle>
+              <Link
+                href={guide.href}
+                className="text-xs font-medium text-primary hover:underline"
+              >
+                Buka →
+              </Link>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">{guide.intro}</p>
+          </div>
         </div>
-        <CardTitle className="text-sm leading-snug">{step.title}</CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          {step.body}
-        </p>
-        {step.href && (
-          <Link
-            href={step.href}
-            className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-          >
-            {step.hrefLabel ?? "Buka"} →
-          </Link>
+        <ol className="ml-1 space-y-2 text-sm">
+          {guide.steps.map((s, i) => (
+            <li key={i} className="flex items-start gap-2.5">
+              <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border border-primary/40 bg-primary/10 text-[10px] font-semibold text-primary">
+                {i + 1}
+              </span>
+              <span className="text-foreground/90">{s}</span>
+            </li>
+          ))}
+        </ol>
+        {guide.tips && guide.tips.length > 0 && (
+          <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs dark:border-amber-500/40 dark:bg-amber-500/10">
+            <p className="mb-1 font-medium text-amber-900 dark:text-amber-200">
+              💡 Tips
+            </p>
+            <ul className="ml-4 list-disc space-y-1 text-amber-900/80 dark:text-amber-200/80">
+              {guide.tips.map((t, i) => (
+                <li key={i}>{t}</li>
+              ))}
+            </ul>
+          </div>
         )}
       </CardContent>
     </Card>

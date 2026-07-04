@@ -122,9 +122,3 @@ export const DOCUMENT_HEADER = {
   email: "kkn.sisdamas@uinsgd.ac.id",
 } as const;
 
-// Default Achievement targets (seeded)
-export const DEFAULT_ACHIEVEMENT_TARGETS = [
-  { type: "ARTIKEL", count: 5, description: "Target artikel publikasi" },
-  { type: "VIDEO", count: 3, description: "Target video publikasi" },
-  { type: "BERITA", count: 2, description: "Target berita liputan" },
-] as const;

@@ -58,7 +58,12 @@ export async function POST(req: Request) {
 
   const { attendeeIds, ...rest } = parsed.data;
   const validUsers = await db.user.findMany({
-    where: { id: { in: attendeeIds }, isActive: true },
+    // Admin selalu difilter dari peserta — bukan bagian operasional tim.
+    where: {
+      id: { in: attendeeIds },
+      isActive: true,
+      role: { not: "SUPER_ADMIN" },
+    },
     select: { id: true },
   });
   if (validUsers.length !== attendeeIds.length) {

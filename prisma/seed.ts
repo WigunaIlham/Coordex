@@ -32,21 +32,6 @@ async function main() {
   });
   console.log(`  ✓ Super Admin: ${admin.email}`);
 
-  const targets = [
-    { type: "ARTIKEL" as const, targetCount: 5, description: "Target artikel publikasi" },
-    { type: "VIDEO" as const, targetCount: 3, description: "Target video publikasi" },
-    { type: "BERITA" as const, targetCount: 2, description: "Target berita liputan" },
-  ];
-
-  for (const t of targets) {
-    await db.achievementTarget.upsert({
-      where: { type: t.type },
-      update: { targetCount: t.targetCount, description: t.description },
-      create: t,
-    });
-    console.log(`  ✓ AchievementTarget: ${t.type} = ${t.targetCount}`);
-  }
-
   console.log("✅ Seed selesai.");
   console.log(`\n   Login Super Admin: ${adminEmail}`);
   console.log(`   Password         : ${adminPassword}\n`);

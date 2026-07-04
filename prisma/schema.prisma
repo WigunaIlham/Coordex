@@ -115,27 +115,6 @@ enum StakeholderCategory {
   LAINNYA
 }
 
-enum RiskCategory {
-  CUACA
-  ANGGARAN
-  KESEHATAN
-  KONFLIK
-  JADWAL
-  LAINNYA
-}
-
-enum RiskLevel {
-  RENDAH
-  SEDANG
-  TINGGI
-}
-
-enum RiskStatus {
-  AKTIF
-  DIMITIGASI
-  TERJADI
-}
-
 enum ProgramCycle {
   SIKLUS_I
   SIKLUS_II
@@ -148,13 +127,6 @@ enum ProgramStatus {
   BERLANGSUNG
   SELESAI
   DIBATALKAN
-}
-
-enum AchievementType {
-  ARTIKEL
-  VIDEO
-  BERITA
-  LAINNYA
 }
 
 // ============================================================
@@ -243,10 +215,10 @@ model User {
   approvedMedia       MediaAsset[]            @relation("MediaApprovedBy")
   createdStakeholders Stakeholder[]
   contactHistories    ContactHistory[]
-  createdRisks        Risk[]
   programsAsPIC       Program[]
-  achievements        Achievement[]
   createdRabs         Rab[]                   @relation("RabCreatedBy")
+  qnaQuestions        QnaQuestion[]           @relation("QnaAuthor")
+  qnaAnswers          QnaAnswer[]             @relation("QnaAnswerAuthor")
 
   @@map("users")
 }
@@ -634,55 +606,40 @@ model ContactHistory {
 }
 
 // ============================================================
-// MODULE 14: RISK REGISTER
+// MODULE: QNA (diskusi terbuka tim)
 // ============================================================
 
-model Risk {
-  id             String       @id @default(cuid())
-  title          String
-  category       RiskCategory
-  probability    RiskLevel
-  impact         RiskLevel
-  mitigationPlan String?      @db.Text
-  status         RiskStatus   @default(AKTIF)
-  createdById    String
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+model QnaQuestion {
+  id        String   @id @default(cuid())
+  title     String   @db.VarChar(300)
+  body      String?  @db.Text
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  createdBy User @relation(fields: [createdById], references: [id])
+  author  User        @relation("QnaAuthor", fields: [authorId], references: [id])
+  answers QnaAnswer[]
 
-  @@map("risks")
+  @@index([createdAt])
+  @@map("qna_questions")
+}
+
+model QnaAnswer {
+  id         String   @id @default(cuid())
+  questionId String
+  body       String   @db.Text
+  authorId   String
+  createdAt  DateTime @default(now())
+
+  question QnaQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  author   User        @relation("QnaAnswerAuthor", fields: [authorId], references: [id])
+
+  @@index([questionId])
+  @@map("qna_answers")
 }
 
 // ============================================================
-// MODULE 15: ACHIEVEMENT TRACKER
-// ============================================================
-
-model Achievement {
-  id            String          @id @default(cuid())
-  type          AchievementType
-  title         String
-  url           String?
-  publishedDate DateTime?       @db.Date
-  authorId      String
-  createdAt     DateTime        @default(now())
-
-  author User @relation(fields: [authorId], references: [id])
-
-  @@map("achievements")
-}
-
-model AchievementTarget {
-  id          String          @id @default(cuid())
-  type        AchievementType @unique
-  targetCount Int
-  description String?
-
-  @@map("achievement_targets")
-}
-
-// ============================================================
-// MODULE 16: RAB (Rencana Anggaran Biaya)
+// MODULE: RAB (Rencana Anggaran Biaya)
 // ============================================================
 
 model Rab {

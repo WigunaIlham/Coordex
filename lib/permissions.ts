@@ -34,12 +34,11 @@ export type Permission =
   | "rapat.crud"
   | "konsumsi.manage"
 
-  // Phase-2 modules
+  // Modul lain
   | "media.crud"
   | "program.crud"
-  | "pencapaian.crud"
   | "pemangku.crud"
-  | "risiko.crud"
+  | "qna.crud"
 
   // Repository
   | "repositori.crud"
@@ -52,58 +51,58 @@ export type Permission =
   | "admin.reports"
   | "admin.config";
 
-// Permissions every logged-in user always has, regardless of role.
+// Permissions every logged-in user always has.
+// Kebijakan: semua user bisa view + kontribusi (CRUD) semua modul non-sensitif.
+// Yang tetap khusus:
+//   - konflik.manage (butuh Ketua)
+//   - stres.manage (butuh Ketua)
+//   - keuangan.approve / rab.approve (butuh Ketua)
+//   - admin.* (butuh SUPER_ADMIN)
 const DEFAULTS: Permission[] = [
   "dashboard.view",
   "tugas.view",
+  "tugas.crud",
   "aktivitas.crud",
   "stres.respond",
   "konflik.report",
   "keuangan.view",
+  "keuangan.crud",
   "rab.view",
+  "rab.crud",
   "dokumen.view",
+  "dokumen.crud",
+  "dokumen.crudFinance",
   "rapat.view",
+  "rapat.crud",
   "konsumsi.view",
+  "konsumsi.manage",
   "repositori.view",
+  "repositori.crud",
+  "repositori.upload",
   "profil.view",
-  // Modul tambahan — akses CRUD dibuka untuk semua user aktif supaya seluruh
-  // tim bisa kontribusi (upload foto media, catat pencapaian, log risiko, dll).
   "media.crud",
   "program.crud",
-  "pencapaian.crud",
   "pemangku.crud",
-  "risiko.crud",
+  "qna.crud",
 ];
 
 // Role → extra permissions on top of DEFAULTS. Super Admin bypasses the map.
+// Sekarang lebih ramping karena mayoritas capability sudah di DEFAULTS.
 const ROLE_EXTRA: Record<Exclude<Role, "SUPER_ADMIN">, Permission[]> = {
   KETUA: [
-    "tugas.crud",
     "konflik.manage",
     "stres.manage",
     "keuangan.approve",
     "rab.approve",
-    "risiko.crud",
   ],
-  SEKRETARIS: [
-    "tugas.crud",
-    "dokumen.crud",
-    "repositori.crud",
-    "repositori.upload",
-    "rapat.crud",
-  ],
-  BENDAHARA: [
-    "keuangan.crud",
-    "rab.crud",
-    "dokumen.crudFinance",
-    "repositori.upload",
-  ],
-  PJ_PDD: ["tugas.crud", "rab.crud", "media.crud"],
+  SEKRETARIS: [],
+  BENDAHARA: [],
+  PJ_PDD: [],
   ANGGOTA_PDD: [],
-  PJ_KONSUMSI: ["konsumsi.manage"],
-  PJ_ACARA: ["tugas.crud", "rab.crud", "program.crud", "pencapaian.crud"],
+  PJ_KONSUMSI: [],
+  PJ_ACARA: [],
   ANGGOTA_ACARA: [],
-  PJ_HUMLOG: ["tugas.crud", "rab.crud", "pemangku.crud"],
+  PJ_HUMLOG: [],
   ANGGOTA_HUMLOG: [],
 };
 
@@ -122,20 +121,16 @@ export function hasAnyPermission(role: Role, perms: Permission[]): boolean {
   return perms.some((p) => hasPermission(role, p));
 }
 
-// Convenience: Super Admin OR Ketua. Replaces the common
-// `role === "KETUA"` pattern that used to grant Ketua-level access.
+// Convenience: Super Admin OR Ketua.
 export function isAdminOrKetua(role: Role): boolean {
   return role === "SUPER_ADMIN" || role === "KETUA";
 }
 
-// Convenience: Ketua-level manager set for approvals (Ketua, Super Admin, and
-// anything else that opts into approval flows in the future).
 export function canApprove(role: Role): boolean {
   return isAdminOrKetua(role);
 }
 
-// Explicit full list used for Super Admin fast-path. Keep in sync with the
-// Permission union above.
+// Explicit full list used for Super Admin fast-path.
 const ALL_PERMISSIONS: Permission[] = [
   "dashboard.view",
   "tugas.view",
@@ -162,9 +157,8 @@ const ALL_PERMISSIONS: Permission[] = [
   "konsumsi.manage",
   "media.crud",
   "program.crud",
-  "pencapaian.crud",
   "pemangku.crud",
-  "risiko.crud",
+  "qna.crud",
   "repositori.crud",
   "repositori.upload",
   "admin.users",

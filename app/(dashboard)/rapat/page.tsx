@@ -26,7 +26,9 @@ export default async function RapatPage() {
     }),
     canCreate
       ? db.user.findMany({
-          where: { isActive: true },
+          // SUPER_ADMIN dikeluarkan dari daftar peserta — admin bukan bagian
+          // operasional harian tim.
+          where: { isActive: true, role: { not: "SUPER_ADMIN" } },
           select: { id: true, name: true, role: true },
           orderBy: { name: "asc" },
         })

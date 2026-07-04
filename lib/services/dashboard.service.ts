@@ -114,3 +114,24 @@ export const getTodayConsumptionDuty = unstable_cache(
   ["dashboard:today-duty"],
   { revalidate: TTL_SECONDS, tags: ["dashboard", "consumption"] },
 );
+
+/** Today's piket duty roster (identik strukturnya dgn konsumsi). */
+export const getTodayPiketDuty = unstable_cache(
+  async (todayKey: string) => {
+    const start = new Date(todayKey);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
+    return db.consumptionDuty.findFirst({
+      where: { date: { gte: start, lt: end }, type: "PIKET" },
+      include: {
+        members: {
+          include: {
+            user: { select: { id: true, name: true, avatarUrl: true } },
+          },
+        },
+      },
+    });
+  },
+  ["dashboard:today-piket"],
+  { revalidate: TTL_SECONDS, tags: ["dashboard", "consumption"] },
+);
