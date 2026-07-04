@@ -52,58 +52,74 @@ export type Permission =
   | "admin.config";
 
 // Permissions every logged-in user always has.
-// Kebijakan: semua user bisa view + kontribusi (CRUD) semua modul non-sensitif.
-// Yang tetap khusus:
-//   - konflik.manage (butuh Ketua)
-//   - stres.manage (butuh Ketua)
-//   - keuangan.approve / rab.approve (butuh Ketua)
-//   - admin.* (butuh SUPER_ADMIN)
+// Kebijakan sekarang:
+//   - Semua user bisa VIEW semua fitur (kecuali pusat konflik).
+//   - CRUD dibatasi per role:
+//       * Keuangan → BENDAHARA
+//       * Media → PDD (PJ + Anggota)
+//       * Program → Acara (PJ + Anggota)
+//       * Jadwal (Konsumsi/Piket) + Pemangku → HumLog (PJ + Anggota)
+//       * Rapat → SEKRETARIS
+//   - Beberapa hal terbuka untuk semua: tugas, aktivitas, dokumen, RAB, QnA,
+//     repositori.
 const DEFAULTS: Permission[] = [
+  // Views (semua user bisa lihat)
   "dashboard.view",
   "tugas.view",
+  "keuangan.view",
+  "rab.view",
+  "dokumen.view",
+  "rapat.view",
+  "konsumsi.view",
+  "repositori.view",
+  "profil.view",
+
+  // CRUD terbuka untuk semua anggota
   "tugas.crud",
   "aktivitas.crud",
   "stres.respond",
   "konflik.report",
-  "keuangan.view",
-  "keuangan.crud",
-  "rab.view",
   "rab.crud",
-  "dokumen.view",
   "dokumen.crud",
-  "dokumen.crudFinance",
-  "rapat.view",
-  "rapat.crud",
-  "konsumsi.view",
-  "konsumsi.manage",
-  "repositori.view",
   "repositori.crud",
   "repositori.upload",
-  "profil.view",
-  "media.crud",
-  "program.crud",
-  "pemangku.crud",
   "qna.crud",
 ];
 
 // Role → extra permissions on top of DEFAULTS. Super Admin bypasses the map.
-// Sekarang lebih ramping karena mayoritas capability sudah di DEFAULTS.
 const ROLE_EXTRA: Record<Exclude<Role, "SUPER_ADMIN">, Permission[]> = {
+  // Ketua tetap punya oversight semua modul + otoritas approve
   KETUA: [
-    "konflik.manage",
-    "stres.manage",
+    "keuangan.crud",
     "keuangan.approve",
     "rab.approve",
+    "media.crud",
+    "program.crud",
+    "konsumsi.manage",
+    "pemangku.crud",
+    "rapat.crud",
+    "konflik.manage",
+    "stres.manage",
+    "dokumen.crudFinance",
   ],
-  SEKRETARIS: [],
-  BENDAHARA: [],
-  PJ_PDD: [],
-  ANGGOTA_PDD: [],
+  SEKRETARIS: ["rapat.crud"],
+  BENDAHARA: ["keuangan.crud", "dokumen.crudFinance"],
+
+  // PDD
+  PJ_PDD: ["media.crud"],
+  ANGGOTA_PDD: ["media.crud"],
+
+  // Acara
+  PJ_ACARA: ["program.crud"],
+  ANGGOTA_ACARA: ["program.crud"],
+
+  // HumLog — kelola jadwal (konsumsi+piket) + pemangku kepentingan
+  PJ_HUMLOG: ["konsumsi.manage", "pemangku.crud"],
+  ANGGOTA_HUMLOG: ["konsumsi.manage", "pemangku.crud"],
+
+  // Konsumsi (kalau ada role terpisah untuk operasional konsumsi) —
+  // dibiarkan tanpa CRUD khusus. Rotasi konsumsi/piket dipegang HumLog.
   PJ_KONSUMSI: [],
-  PJ_ACARA: [],
-  ANGGOTA_ACARA: [],
-  PJ_HUMLOG: [],
-  ANGGOTA_HUMLOG: [],
 };
 
 export function permissionsOf(role: Role): Permission[] {
