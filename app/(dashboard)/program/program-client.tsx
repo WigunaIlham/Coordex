@@ -137,11 +137,17 @@ export function ProgramClient({
     setPrograms((prev) =>
       prev.map((p) => (p.id === id ? { ...p, progress } : p)),
     );
-    await fetch(`/api/programs/${id}`, {
+    const res = await fetch(`/api/programs/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ progress }),
     });
+    if (!res.ok) {
+      toast.error("Gagal menyimpan progress");
+      return;
+    }
+    toast.success(`Progress → ${progress}%`);
+    router.refresh();
   }
 
   async function updateStatus(id: string, status: ProgramStatus) {
@@ -431,11 +437,13 @@ function ProgramCard({
           </p>
         )}
 
-        {/* Progress slider */}
-        <div>
-          <div className="mb-1 flex items-baseline justify-between text-[11px]">
-            <span className="text-muted-foreground">Progres</span>
-            <span className="font-medium tabular-nums">{localProgress}%</span>
+        {/* Progress input — slider + number + save button */}
+        <div className="rounded-md border bg-muted/20 p-2.5">
+          <div className="mb-1.5 flex items-baseline justify-between text-[11px]">
+            <span className="font-medium text-foreground">Progress Laporan</span>
+            <span className="tabular-nums font-semibold text-primary">
+              {localProgress}%
+            </span>
           </div>
           <input
             type="range"
@@ -444,11 +452,35 @@ function ProgramCard({
             step={5}
             value={localProgress}
             onChange={(e) => setLocalProgress(Number(e.target.value))}
-            onMouseUp={() => onProgress(program.id, localProgress)}
-            onTouchEnd={() => onProgress(program.id, localProgress)}
-            className="h-2 w-full cursor-pointer accent-primary"
-            aria-label="Progres program"
+            className="mb-2 h-2 w-full cursor-pointer accent-primary"
+            aria-label="Progress program"
           />
+          <div className="flex items-center gap-1.5">
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step={1}
+              value={localProgress}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                if (!Number.isNaN(v)) setLocalProgress(Math.max(0, Math.min(100, v)));
+              }}
+              className="h-7 w-16 rounded border border-input bg-background px-2 text-xs tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label="Progress angka"
+            />
+            <span className="text-[10px] text-muted-foreground">%</span>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="ml-auto h-7 text-xs"
+              onClick={() => onProgress(program.id, localProgress)}
+              disabled={pending || localProgress === program.progress}
+            >
+              {localProgress === program.progress ? "Tersimpan" : "Simpan"}
+            </Button>
+          </div>
         </div>
 
         <div className="flex items-center justify-between border-t pt-2">

@@ -8,6 +8,7 @@ import {
   Truck,
   Utensils,
   Users2,
+  Users,
 } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
@@ -89,9 +90,18 @@ function computeAutoProgress(
   return Math.round(ratio * 100);
 }
 
-export default async function TimelinePage() {
+export default async function TimelinePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ divisi?: string }>;
+}) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
+  const { divisi: divisiParam } = await searchParams;
+  const activeDivisi =
+    divisiParam && DIVISI_ORDER.includes(divisiParam.toUpperCase())
+      ? divisiParam.toUpperCase()
+      : "SEMUA";
 
   const programs = await db.program.findMany({
     orderBy: [{ targetDate: "asc" }, { createdAt: "desc" }],
@@ -126,6 +136,51 @@ export default async function TimelinePage() {
         description="Peta jalan program per divisi — target, progress, dan PIC."
       />
 
+      {/* Filter divisi */}
+      <div
+        role="tablist"
+        aria-label="Filter divisi"
+        className="mb-6 flex flex-wrap items-center gap-1.5 rounded-lg border bg-muted/40 p-1"
+      >
+        {(["SEMUA", ...DIVISI_ORDER] as const).map((key) => {
+          const isActive = key === activeDivisi;
+          const meta = key === "SEMUA"
+            ? { label: "Semua", icon: Users, tone: "", count: totalPrograms }
+            : {
+                label: DIVISI_META[key].label.split(" ")[0],
+                icon: DIVISI_META[key].icon,
+                tone: DIVISI_META[key].tone,
+                count: buckets[key]?.length ?? 0,
+              };
+          const Icon = meta.icon;
+          return (
+            <Link
+              key={key}
+              role="tab"
+              aria-selected={isActive}
+              href={key === "SEMUA" ? "/timeline" : `/timeline?divisi=${key}`}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+                isActive
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {meta.label}
+              <span
+                className={cn(
+                  "ml-1 rounded-full px-1.5 py-0 text-[9px] tabular-nums",
+                  isActive ? "bg-muted" : "bg-muted-foreground/10",
+                )}
+              >
+                {meta.count}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+
       {totalPrograms === 0 ? (
         <div className="rounded-xl border border-dashed bg-muted/30 p-10 text-center">
           <RouteIcon
@@ -145,7 +200,9 @@ export default async function TimelinePage() {
         </div>
       ) : (
         <div className="space-y-6">
-          {DIVISI_ORDER.map((key) => {
+          {DIVISI_ORDER.filter(
+            (k) => activeDivisi === "SEMUA" || k === activeDivisi,
+          ).map((key) => {
             const items = buckets[key] ?? [];
             if (items.length === 0) return null;
             const meta = DIVISI_META[key];
@@ -186,17 +243,27 @@ export default async function TimelinePage() {
                         className="transition-colors hover:border-primary/40"
                       >
                         <CardHeader className="pb-3">
-                          <div className="flex items-start justify-between gap-2">
-                            <CardTitle className="text-sm leading-snug">
-                              {p.name}
-                            </CardTitle>
+                          <div className="mb-1.5 flex flex-wrap items-center gap-1">
                             <Badge
                               variant="outline"
-                              className={cn("shrink-0 text-[10px]", meta.tone)}
+                              className={cn(
+                                "text-[10px] gap-1",
+                                meta.tone,
+                              )}
+                            >
+                              <Icon className="h-3 w-3" />
+                              {meta.label.split(" ")[0]}
+                            </Badge>
+                            <Badge
+                              variant="outline"
+                              className="text-[10px]"
                             >
                               {p.status}
                             </Badge>
                           </div>
+                          <CardTitle className="text-sm leading-snug">
+                            {p.name}
+                          </CardTitle>
                           {p.description && (
                             <p className="line-clamp-2 text-xs text-muted-foreground">
                               {p.description}
