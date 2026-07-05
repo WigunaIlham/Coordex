@@ -1,3 +1,5 @@
+import { revalidateTag } from "next/cache";
+
 import { apiErr, apiOk } from "@/lib/api";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -55,6 +57,7 @@ export async function PUT(
   if (!parsed.success) return apiErr("Input tidak valid", 400);
 
   const updated = await db.rab.update({ where: { id }, data: parsed.data });
+  revalidateTag("rab", "seconds");
   return apiOk(updated);
 }
 
@@ -70,5 +73,6 @@ export async function DELETE(
   if (!canEdit) return apiErr("Tidak diizinkan", 403);
 
   await db.rab.delete({ where: { id } });
+  revalidateTag("rab", "seconds");
   return apiOk({ ok: true });
 }

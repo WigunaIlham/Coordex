@@ -1,3 +1,5 @@
+import { revalidateTag } from "next/cache";
+
 import { apiErr, apiOk } from "@/lib/api";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -46,5 +48,6 @@ export async function POST(
       order: (last?.order ?? -1) + 1,
     },
   });
+  revalidateTag("rab", "seconds");
   return apiOk(item, undefined, { status: 201 });
 }

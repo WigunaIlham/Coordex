@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { PageHeader } from "@/components/shared/page-header";
+import { PagePoller } from "@/components/shared/page-poller";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
@@ -41,6 +42,7 @@ export default async function RabPage() {
 
   return (
     <div>
+      <PagePoller />
       <PageHeader
         title="Rencana Anggaran Biaya (RAB)"
         description="Semua anggota bisa buat RAB. Tandai status Draft / Revisi / Fix biar tim tahu mana yang final."

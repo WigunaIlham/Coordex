@@ -1,3 +1,5 @@
+import { revalidateTag } from "next/cache";
+
 import { apiErr, apiOk } from "@/lib/api";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -25,6 +27,7 @@ export async function PUT(
     where: { id: categoryId },
     data: parsed.data,
   });
+  revalidateTag("rab", "seconds");
   return apiOk(updated);
 }
 
@@ -40,5 +43,6 @@ export async function DELETE(
 
   const { categoryId } = await params;
   await db.rabCategory.delete({ where: { id: categoryId } });
+  revalidateTag("rab", "seconds");
   return apiOk({ ok: true });
 }

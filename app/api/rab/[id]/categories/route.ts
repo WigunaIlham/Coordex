@@ -1,3 +1,5 @@
+import { revalidateTag } from "next/cache";
+
 import { apiErr, apiOk } from "@/lib/api";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -38,5 +40,6 @@ export async function POST(
     },
     include: { items: true },
   });
+  revalidateTag("rab", "seconds");
   return apiOk(category, undefined, { status: 201 });
 }
