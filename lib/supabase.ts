@@ -38,6 +38,12 @@ export async function uploadToBucket(
   return { path: filePath };
 }
 
+export function getPublicUrl(bucket: string, path: string) {
+  const client = getSupabaseAdmin();
+  const { data } = client.storage.from(bucket).getPublicUrl(path);
+  return data.publicUrl;
+}
+
 export async function createSignedUrl(
   bucket: string,
   path: string,

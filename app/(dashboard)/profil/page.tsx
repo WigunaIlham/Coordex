@@ -3,12 +3,12 @@ import { redirect } from "next/navigation";
 
 import { ROLE_LABELS } from "@/components/layout/role-label";
 import { PageHeader } from "@/components/shared/page-header";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { formatDate, getInitials } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
+import { AvatarUpload } from "./avatar-upload";
 import { PasswordForm } from "./password-form";
 import { ProfileForm } from "./profile-form";
 import { ThemeCard } from "./theme-card";
@@ -46,12 +46,7 @@ export default async function ProfilPage() {
           className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-primary/10 blur-3xl"
         />
         <div className="relative flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-          <Avatar className="h-16 w-16 border-4 border-background shadow-sm sm:h-20 sm:w-20">
-            <AvatarImage src={user.avatarUrl ?? undefined} alt={user.name} />
-            <AvatarFallback className="text-lg font-medium">
-              {getInitials(user.name)}
-            </AvatarFallback>
-          </Avatar>
+          <AvatarUpload name={user.name} avatarUrl={user.avatarUrl} />
           <div className="min-w-0 flex-1">
             <h2 className="truncate text-lg font-semibold leading-tight sm:text-xl">
               {user.name}
