@@ -44,6 +44,20 @@ export function getPublicUrl(bucket: string, path: string) {
   return data.publicUrl;
 }
 
+// Idempotent: memastikan bucket ada dan public. Dipakai untuk avatar
+// supaya <img src> bisa langsung load tanpa perlu signed URL.
+export async function ensurePublicBucket(bucket: string) {
+  const client = getSupabaseAdmin();
+  const { data: existing, error } = await client.storage.getBucket(bucket);
+  if (error && !existing) {
+    await client.storage.createBucket(bucket, { public: true });
+    return;
+  }
+  if (existing && !existing.public) {
+    await client.storage.updateBucket(bucket, { public: true });
+  }
+}
+
 export async function createSignedUrl(
   bucket: string,
   path: string,

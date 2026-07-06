@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import {
   buildFilePath,
   deleteFromBucket,
+  ensurePublicBucket,
   getPublicUrl,
   uploadToBucket,
 } from "@/lib/supabase";
@@ -16,7 +17,7 @@ function extractAvatarPath(url: string | null): string | null {
   const marker = `/${STORAGE_BUCKETS.AVATARS}/`;
   const idx = url.indexOf(marker);
   if (idx === -1) return null;
-  return url.slice(idx + marker.length);
+  return url.slice(idx + marker.length).split("?")[0];
 }
 
 export async function POST(req: Request) {
@@ -49,13 +50,14 @@ export async function POST(req: Request) {
     const path = buildFilePath(`user-${session.user.id}`, file.name);
 
     try {
+      await ensurePublicBucket(STORAGE_BUCKETS.AVATARS);
       await uploadToBucket(STORAGE_BUCKETS.AVATARS, path, buffer, file.type);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Gagal upload ke storage";
       return apiErr(msg, 500, "STORAGE_UPLOAD_FAILED");
     }
 
-    const publicUrl = getPublicUrl(STORAGE_BUCKETS.AVATARS, path);
+    const publicUrl = `${getPublicUrl(STORAGE_BUCKETS.AVATARS, path)}?v=${Date.now()}`;
 
     const updated = await db.user.update({
       where: { id: session.user.id },
