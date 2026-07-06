@@ -130,7 +130,10 @@ export function AppShell({ user, unresolvedConflicts, children }: Props) {
         <main
           id="main-content"
           tabIndex={-1}
-          className="flex-1 p-4 pb-24 md:p-6 md:pb-6 lg:p-8 focus:outline-none"
+          // pb-28 pada mobile = ekstra ~112px bawah biar bottom nav pill
+          // (h-14 + bottom-2 + safe-area) tidak menutup konten. env(safe-area)
+          // ditambah tambah ekstra buat iPhone dengan home indicator.
+          className="flex-1 p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:p-6 md:pb-6 lg:p-8 focus:outline-none"
         >
           {children}
         </main>

@@ -43,7 +43,7 @@ export default async function TugasPage() {
   }));
 
   return (
-    <div className="flex h-[calc(100vh-7rem)] flex-col">
+    <div className="flex h-[calc(100dvh-13rem)] flex-col md:h-[calc(100dvh-7rem)]">
       <PageHeader
         title="Tugas"
         description="Drag-and-drop kartu untuk mengubah status."
