@@ -13,15 +13,22 @@ export default async function DashboardLayout({
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const unresolvedConflicts = isAdminOrKetua(session.user.role)
-    ? await db.conflictReport.count({ where: { status: { not: "SELESAI" } } })
-    : undefined;
+  const [me, unresolvedConflicts] = await Promise.all([
+    db.user.findUnique({
+      where: { id: session.user.id },
+      select: { name: true, email: true, avatarUrl: true, role: true },
+    }),
+    isAdminOrKetua(session.user.role)
+      ? db.conflictReport.count({ where: { status: { not: "SELESAI" } } })
+      : Promise.resolve(undefined),
+  ]);
+  if (!me) redirect("/login");
 
   const sidebarUser = {
-    name: session.user.name ?? "",
-    email: session.user.email ?? "",
-    avatarUrl: session.user.image,
-    role: session.user.role,
+    name: me.name,
+    email: me.email,
+    avatarUrl: me.avatarUrl,
+    role: me.role,
   };
 
   return (
