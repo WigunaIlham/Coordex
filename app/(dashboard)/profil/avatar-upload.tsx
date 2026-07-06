@@ -90,7 +90,7 @@ export function AvatarUpload({ name, avatarUrl }: Props) {
   }
 
   return (
-    <div className="relative">
+    <div className="flex flex-col items-center gap-2 sm:items-start">
       <input
         ref={inputRef}
         type="file"
@@ -98,45 +98,66 @@ export function AvatarUpload({ name, avatarUrl }: Props) {
         className="hidden"
         onChange={handleChange}
       />
-      <button
-        type="button"
-        onClick={pickFile}
-        disabled={busy !== null}
-        aria-label="Ubah foto profil"
-        className="group relative block rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed"
-      >
+
+      <div className="relative">
         <Avatar className="h-16 w-16 border-4 border-background shadow-sm sm:h-20 sm:w-20">
           <AvatarImage src={preview ?? undefined} alt={name} />
           <AvatarFallback className="text-lg font-medium">
             {getInitials(name)}
           </AvatarFallback>
         </Avatar>
-        <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-          {busy === "upload" ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : (
-            <Camera className="h-5 w-5" />
-          )}
-        </span>
-      </button>
 
-      {preview && (
-        <Button
+        <button
           type="button"
-          variant="secondary"
-          size="icon"
-          onClick={handleDelete}
+          onClick={pickFile}
           disabled={busy !== null}
-          aria-label="Hapus foto profil"
-          className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full border shadow-sm"
+          aria-label="Ubah foto profil"
+          className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border border-background bg-primary text-primary-foreground shadow-sm transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {busy === "delete" ? (
+          {busy === "upload" ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
           ) : (
-            <Trash2 className="h-3.5 w-3.5" />
+            <Camera className="h-3.5 w-3.5" />
           )}
+        </button>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={pickFile}
+          disabled={busy !== null}
+          className="h-8"
+        >
+          {busy === "upload" ? (
+            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Camera className="mr-1.5 h-3.5 w-3.5" />
+          )}
+          {preview ? "Ganti Foto" : "Unggah Foto"}
         </Button>
-      )}
+        {preview && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleDelete}
+            disabled={busy !== null}
+            className="h-8 text-destructive hover:text-destructive"
+          >
+            {busy === "delete" ? (
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+            )}
+            Hapus
+          </Button>
+        )}
+      </div>
+
+      <p className="text-[10px] text-muted-foreground">JPG/PNG/WEBP, maks 2 MB</p>
     </div>
   );
 }
