@@ -43,7 +43,12 @@ export default async function TugasPage() {
   }));
 
   return (
-    <div className="flex h-[calc(100dvh-13rem)] flex-col md:h-[calc(100dvh-7rem)]">
+    <div
+      // 7rem = header (56px) + main top padding (16px) + PageHeader (~40px).
+      // Kurangi nav footprint (measured via CSS variable dari BottomNav)
+      // supaya kolom kanban tidak dibawah pill. Pada desktop var = 0.
+      className="flex h-[calc(100dvh-7rem-var(--bottom-nav-height,0px)-env(safe-area-inset-bottom)-1rem)] flex-col md:h-[calc(100dvh-7rem)]"
+    >
       <PageHeader
         title="Tugas"
         description="Drag-and-drop kartu untuk mengubah status."

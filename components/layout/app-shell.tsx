@@ -130,10 +130,15 @@ export function AppShell({ user, unresolvedConflicts, children }: Props) {
         <main
           id="main-content"
           tabIndex={-1}
-          // pb-28 pada mobile = ekstra ~112px bawah biar bottom nav pill
-          // (h-14 + bottom-2 + safe-area) tidak menutup konten. env(safe-area)
-          // ditambah tambah ekstra buat iPhone dengan home indicator.
-          className="flex-1 p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:p-6 md:pb-6 lg:p-8 focus:outline-none"
+          // Bottom padding dihitung dinamis dari height nav pill (measured
+          // via ResizeObserver di BottomNav) + safe-area untuk iOS home
+          // indicator + gap kecil. Pada desktop, var = 0px sehingga md:pb-6
+          // yang berlaku.
+          className={cn(
+            "flex-1 p-4 focus:outline-none",
+            "pb-[calc(var(--bottom-nav-height,0px)+env(safe-area-inset-bottom)+1rem)]",
+            "md:p-6 md:pb-6 lg:p-8",
+          )}
         >
           {children}
         </main>

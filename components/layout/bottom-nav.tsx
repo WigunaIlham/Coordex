@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
 
 import type { Role } from "@/lib/generated/prisma/client";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,45 @@ type Props = {
  */
 export function BottomNav(_props: Props) {
   const pathname = usePathname();
+  const navRef = useRef<HTMLElement>(null);
+
+  // Measure navbar height dan expose ke CSS variable `--bottom-nav-height`
+  // supaya layout global bisa hitung padding-bottom yang benar tanpa magic
+  // number. Pada desktop (md+) nav ini display:none via `md:hidden` →
+  // getBoundingClientRect().height = 0 → variable jadi 0 → padding kembali
+  // ke default desktop.
+  useEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+    const doc = document.documentElement;
+
+    const update = () => {
+      const height = el.getBoundingClientRect().height;
+      doc.style.setProperty("--bottom-nav-height", `${height}px`);
+    };
+    update();
+
+    // ResizeObserver menangkap perubahan height (mis. font size, orientation).
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+
+    // visualViewport bereaksi terhadap iOS Safari address-bar hide/show +
+    // Android keyboard yang ubah viewport tanpa trigger resize element.
+    const vv = window.visualViewport;
+    vv?.addEventListener("resize", update);
+    window.addEventListener("resize", update);
+    // Media query mengubah display:none ↔ block saat crossing md breakpoint.
+    const mql = window.matchMedia("(min-width: 768px)");
+    mql.addEventListener("change", update);
+
+    return () => {
+      ro.disconnect();
+      vv?.removeEventListener("resize", update);
+      window.removeEventListener("resize", update);
+      mql.removeEventListener("change", update);
+      doc.style.removeProperty("--bottom-nav-height");
+    };
+  }, []);
 
   // Anchor via explicit left+right (no transform, no width calc). Width is
   // derived by the browser from the two anchors → no subpixel drift when
@@ -49,6 +89,7 @@ export function BottomNav(_props: Props) {
 
   return (
     <nav
+      ref={navRef}
       aria-label="Navigasi utama"
       style={{
         left: anchor,
