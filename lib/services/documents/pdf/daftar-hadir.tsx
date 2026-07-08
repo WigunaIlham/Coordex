@@ -1,11 +1,11 @@
-import { Document, Page, Text, View } from "@react-pdf/renderer";
+import { Document, Image, Page, Text, View } from "@react-pdf/renderer";
 
 import { DOCUMENT_HEADER } from "@/lib/constants";
 import { formatDate } from "@/lib/utils";
 import { SuratHeader } from "./header";
 import { styles } from "./styles";
 
-type Attendee = { name: string; nim?: string };
+type Attendee = { name: string; nim?: string; signatureUrl?: string | null };
 
 type Data = {
   namaKegiatan: string;
@@ -73,25 +73,41 @@ export function DaftarHadirPDF({ data }: { data: Data }) {
               <View
                 style={[
                   styles.tableCell,
-                  { width: 32, textAlign: "center", height: 28 },
+                  { width: 32, textAlign: "center", height: 40, justifyContent: "center" },
                 ]}
               >
                 <Text>{idx + 1}</Text>
               </View>
-              <View style={[styles.tableCell, { flex: 2.5, height: 28 }]}>
+              <View style={[styles.tableCell, { flex: 2.5, height: 40, justifyContent: "center" }]}>
                 <Text>{a.name}</Text>
               </View>
-              <View style={[styles.tableCell, { flex: 1.3, height: 28 }]}>
+              <View style={[styles.tableCell, { flex: 1.3, height: 40, justifyContent: "center" }]}>
                 <Text>{a.nim ?? ""}</Text>
               </View>
               <View
                 style={[
                   styles.tableCell,
-                  { flex: 1.5, borderRightWidth: 0, height: 28 },
+                  {
+                    flex: 1.5,
+                    borderRightWidth: 0,
+                    height: 40,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: 2,
+                  },
                 ]}
               >
-                {/* Blank cell for wet signature */}
-                <Text> </Text>
+                {a.signatureUrl ? (
+                  // TTD digital dari profil user. Cell dibuat sedikit lebih
+                  // tinggi supaya gambar cukup terbaca; kalau tidak ada, kolom
+                  // tetap kosong untuk tanda tangan basah.
+                  <Image
+                    src={a.signatureUrl}
+                    style={{ maxHeight: 36, maxWidth: "100%" }}
+                  />
+                ) : (
+                  <Text> </Text>
+                )}
               </View>
             </View>
           ))}

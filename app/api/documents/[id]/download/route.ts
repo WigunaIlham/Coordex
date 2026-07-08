@@ -34,7 +34,17 @@ export async function GET(
 
   // Shared extra payload: resolved attendees list, used by DAFTAR_HADIR (auto
   // from active team members) and NOTULEN_RAPAT (from user-picked checklist).
-  let extra: { attendees?: { name: string; nim?: string }[] } | undefined;
+  // signatureUrl hanya ditumpahkan ke DAFTAR_HADIR — renderer memasangnya
+  // sebagai gambar di kolom Tanda Tangan bila ada.
+  let extra:
+    | {
+        attendees?: {
+          name: string;
+          nim?: string;
+          signatureUrl?: string | null;
+        }[];
+      }
+    | undefined;
 
   if (template === "DAFTAR_HADIR" || template === "NOTULEN_RAPAT") {
     // pesertaHadirIds is a checklist of userIds; resolve to names for the doc.
@@ -44,6 +54,7 @@ export async function GET(
     const ids = Array.isArray(raw)
       ? raw.filter((v): v is string => typeof v === "string")
       : [];
+    const includeSignature = template === "DAFTAR_HADIR";
     if (ids.length > 0) {
       // Untuk DAFTAR_HADIR, admin (SUPER_ADMIN) tidak pernah masuk tabel
       // — walau ID-nya sempat tersimpan di formData lama.
@@ -54,26 +65,34 @@ export async function GET(
             ? { role: { not: "SUPER_ADMIN" } }
             : {}),
         },
-        select: { name: true, studentId: true },
+        select: {
+          name: true,
+          studentId: true,
+          ...(includeSignature ? { signatureUrl: true } : {}),
+        },
         orderBy: { name: "asc" },
       });
       extra = {
         attendees: members.map((m) => ({
           name: m.name,
           nim: m.studentId ?? undefined,
+          signatureUrl: includeSignature
+            ? ((m as { signatureUrl?: string | null }).signatureUrl ?? null)
+            : undefined,
         })),
       };
     } else if (template === "DAFTAR_HADIR") {
       // Admin (SUPER_ADMIN) tidak ikut daftar hadir kegiatan lapangan.
       const members = await db.user.findMany({
         where: { isActive: true, role: { not: "SUPER_ADMIN" } },
-        select: { name: true, studentId: true },
+        select: { name: true, studentId: true, signatureUrl: true },
         orderBy: { name: "asc" },
       });
       extra = {
         attendees: members.map((m) => ({
           name: m.name,
           nim: m.studentId ?? undefined,
+          signatureUrl: m.signatureUrl ?? null,
         })),
       };
     } else {

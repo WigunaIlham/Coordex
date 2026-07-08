@@ -3,6 +3,7 @@ import {
   BorderStyle,
   Document,
   HeadingLevel,
+  ImageRun,
   Packer,
   Paragraph,
   Table,
@@ -239,7 +240,13 @@ function hiddenTableBorders() {
 export async function renderDocumentDocx(
   template: SupportedTemplate,
   formData: Record<string, unknown>,
-  extra?: { attendees?: { name: string; nim?: string }[] },
+  extra?: {
+    attendees?: {
+      name: string;
+      nim?: string;
+      signatureUrl?: string | null;
+    }[];
+  },
 ): Promise<Buffer> {
   let doc: Document;
   const get = (k: string) => String(formData[k] ?? "");
@@ -400,17 +407,52 @@ export async function renderDocumentDocx(
           cell("Tanda Tangan", { bold: true, align: AlignmentType.CENTER }),
         ],
       });
-      const rows = attendees.map(
-        (a, idx) =>
-          new TableRow({
-            children: [
-              cell(String(idx + 1), { align: AlignmentType.CENTER }),
-              cell(a.name),
-              cell(a.nim ?? ""),
-              cell(" "),
-            ],
-          }),
+
+      // Ambil bytes TTD tiap peserta paralel — kalau URL gagal / user belum
+      // upload, cell dibiarkan kosong untuk tanda tangan basah.
+      const signatures = await Promise.all(
+        attendees.map(async (a) => {
+          if (!a.signatureUrl) return null;
+          try {
+            const res = await fetch(a.signatureUrl);
+            if (!res.ok) return null;
+            const buf = Buffer.from(await res.arrayBuffer());
+            const type = res.headers.get("content-type") ?? "";
+            const kind = type.includes("jpeg") || type.includes("jpg")
+              ? "jpg"
+              : type.includes("webp")
+                ? "png" // docx doesn't ship webp; user seharusnya pakai PNG/JPG
+                : "png";
+            return { buf, kind: kind as "png" | "jpg" };
+          } catch {
+            return null;
+          }
+        }),
       );
+
+      const rows = attendees.map((a, idx) => {
+        const sig = signatures[idx];
+        const ttdChild = sig
+          ? new Paragraph({
+              alignment: AlignmentType.CENTER,
+              children: [
+                new ImageRun({
+                  data: sig.buf,
+                  transformation: { width: 100, height: 40 },
+                  type: sig.kind,
+                }),
+              ],
+            })
+          : p(" ");
+        return new TableRow({
+          children: [
+            cell(String(idx + 1), { align: AlignmentType.CENTER }),
+            cell(a.name),
+            cell(a.nim ?? ""),
+            new TableCell({ children: [ttdChild] }),
+          ],
+        });
+      });
 
       doc = new Document({
         sections: [

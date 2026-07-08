@@ -9,7 +9,13 @@ import { SuratUndanganPDF } from "./pdf/surat-undangan";
 export async function renderDocumentPdf(
   template: SupportedTemplate,
   formData: Record<string, unknown>,
-  extra?: { attendees?: { name: string; nim?: string }[] }
+  extra?: {
+    attendees?: {
+      name: string;
+      nim?: string;
+      signatureUrl?: string | null;
+    }[];
+  },
 ): Promise<Buffer> {
   switch (template) {
     case "SURAT_UNDANGAN":

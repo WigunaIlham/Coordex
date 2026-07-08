@@ -198,6 +198,7 @@ model User {
   password          String
   role              Role     @default(ANGGOTA_HUMLOG)
   avatarUrl         String?
+  signatureUrl      String?
   phone             String?
   studentId         String?
   isActive          Boolean  @default(true)

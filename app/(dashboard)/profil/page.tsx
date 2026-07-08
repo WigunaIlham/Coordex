@@ -1,4 +1,4 @@
-import { KeyRound, Mail, Palette, ShieldCheck, User } from "lucide-react";
+import { KeyRound, Mail, Palette, PenLine, ShieldCheck, User } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { ROLE_LABELS } from "@/components/layout/role-label";
@@ -11,6 +11,7 @@ import { formatDate } from "@/lib/utils";
 import { AvatarUpload } from "./avatar-upload";
 import { PasswordForm } from "./password-form";
 import { ProfileForm } from "./profile-form";
+import { SignatureUpload } from "./signature-upload";
 import { ThemeCard } from "./theme-card";
 
 export default async function ProfilPage() {
@@ -25,6 +26,7 @@ export default async function ProfilPage() {
       phone: true,
       studentId: true,
       avatarUrl: true,
+      signatureUrl: true,
       role: true,
       isPasswordChanged: true,
       createdAt: true,
@@ -91,6 +93,22 @@ export default async function ProfilPage() {
                 studentId: user.studentId ?? "",
               }}
             />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <PenLine className="h-4 w-4 text-muted-foreground" />
+              Tanda Tangan Digital
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Unggah TTD sekali di sini — akan otomatis muncul di kolom Tanda
+              Tangan pada dokumen yang membutuhkannya (mis. Daftar Hadir).
+            </p>
+          </CardHeader>
+          <CardContent>
+            <SignatureUpload signatureUrl={user.signatureUrl} />
           </CardContent>
         </Card>
 
