@@ -39,6 +39,9 @@ export async function renderDocumentPdf(
             penyelenggara: formData.penyelenggara
               ? String(formData.penyelenggara)
               : undefined,
+            penyelenggaraLabel: formData.penyelenggaraLabel
+              ? String(formData.penyelenggaraLabel)
+              : undefined,
             attendees: extra?.attendees ?? [],
           }}
         />

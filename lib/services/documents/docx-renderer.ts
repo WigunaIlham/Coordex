@@ -477,10 +477,13 @@ export async function renderDocumentDocx(
               }),
               ...(has("penyelenggara")
                 ? [
-                    p(`Penyelenggara: ${get("penyelenggara")}`, {
-                      align: AlignmentType.CENTER,
-                      size: 20,
-                    }),
+                    p(
+                      `${(get("penyelenggaraLabel").trim() || "Penyelenggara")}: ${get("penyelenggara")}`,
+                      {
+                        align: AlignmentType.CENTER,
+                        size: 20,
+                      },
+                    ),
                   ]
                 : []),
               emptyLine(),

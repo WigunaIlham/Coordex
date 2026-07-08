@@ -157,8 +157,14 @@ export const DOCUMENT_TEMPLATE_FIELDS = {
     {key: "waktu", label: "Waktu", type: "text", required: false},
     {key: "tempat", label: "Tempat", type: "text", required: true},
     {
+      key: "penyelenggaraLabel",
+      label: "Label Penyelenggara (default: Penyelenggara)",
+      type: "text",
+      required: false,
+    },
+    {
       key: "penyelenggara",
-      label: "Penyelenggara",
+      label: "Isi Penyelenggara",
       type: "text",
       required: false,
     },

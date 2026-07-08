@@ -13,6 +13,7 @@ type Data = {
   waktu?: string;
   tempat: string;
   penyelenggara?: string;
+  penyelenggaraLabel?: string;
   attendees: Attendee[];
 };
 
@@ -46,7 +47,8 @@ export function DaftarHadirPDF({ data }: { data: Data }) {
           </Text>
           {data.penyelenggara && (
             <Text style={{ fontSize: 10, marginTop: 1 }}>
-              Penyelenggara: {data.penyelenggara}
+              {(data.penyelenggaraLabel?.trim() || "Penyelenggara")}:{" "}
+              {data.penyelenggara}
             </Text>
           )}
         </View>
