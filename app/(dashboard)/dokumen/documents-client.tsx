@@ -54,6 +54,7 @@ type Member = {
   id: string;
   name: string;
   studentId: string | null;
+  role: string;
 };
 
 const TEMPLATE_LABELS: Record<string, string> = {
@@ -300,8 +301,8 @@ function CreateDocumentDialog({
     });
   }
 
-  function selectAllAttendees(field: string) {
-    setFormData((prev) => ({ ...prev, [field]: members.map((m) => m.id) }));
+  function selectAllAttendees(field: string, pool: Member[]) {
+    setFormData((prev) => ({ ...prev, [field]: pool.map((m) => m.id) }));
   }
   function clearAttendees(field: string) {
     setFormData((prev) => ({ ...prev, [field]: [] }));
@@ -444,9 +445,22 @@ function CreateDocumentDialog({
                     <AttendeesPicker
                       field={f.key}
                       selected={Array.isArray(val) ? val : []}
-                      members={members}
+                      members={
+                        // Daftar hadir hanya untuk anggota lapangan — admin
+                        // (SUPER_ADMIN) tidak ikut absensi kegiatan.
+                        templateType === "DAFTAR_HADIR"
+                          ? members.filter((m) => m.role !== "SUPER_ADMIN")
+                          : members
+                      }
                       onToggle={(id) => toggleAttendee(f.key, id)}
-                      onSelectAll={() => selectAllAttendees(f.key)}
+                      onSelectAll={() =>
+                        selectAllAttendees(
+                          f.key,
+                          templateType === "DAFTAR_HADIR"
+                            ? members.filter((m) => m.role !== "SUPER_ADMIN")
+                            : members,
+                        )
+                      }
                       onClear={() => clearAttendees(f.key)}
                       disabled={creating}
                     />

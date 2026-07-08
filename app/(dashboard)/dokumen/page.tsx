@@ -24,7 +24,7 @@ export default async function DokumenPage() {
     }),
     db.user.findMany({
       where: { isActive: true },
-      select: { id: true, name: true, studentId: true },
+      select: { id: true, name: true, studentId: true, role: true },
       orderBy: { name: "asc" },
     }),
   ]);

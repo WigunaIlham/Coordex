@@ -88,6 +88,7 @@ export const DOCUMENT_TEMPLATE_FIELDS = {
     { key: "waktu", label: "Waktu", type: "text", required: false },
     { key: "tempat", label: "Tempat", type: "text", required: true },
     { key: "penyelenggara", label: "Penyelenggara", type: "text", required: false },
+    { key: "pesertaHadirIds", label: "Peserta Hadir", type: "attendees", required: true },
   ],
   LPJ: [
     { key: "namaKegiatan", label: "Nama Kegiatan", type: "text", required: true },
