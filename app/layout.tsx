@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { LegacyBrowserGuard } from "@/components/legacy-browser-guard";
 import { ThemeScript } from "@/components/theme/theme-script";
 import { Providers } from "./providers";
 import "./globals.css";
@@ -38,6 +39,9 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
+        {/* Runs first: swap in a static "please update" overlay on browsers
+            below our baseline before the main bundle fails to parse. */}
+        <LegacyBrowserGuard />
         {/* Sync theme + color scheme before hydration so users never see a
             flash of the wrong palette. Must live in <head> and run inline. */}
         <ThemeScript />
