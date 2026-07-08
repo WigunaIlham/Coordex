@@ -5,6 +5,7 @@ import { ROLE_LABELS } from "@/components/layout/role-label";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { Role } from "@/lib/generated/prisma/client";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatDate } from "@/lib/utils";
@@ -18,20 +19,58 @@ export default async function ProfilPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const user = await db.user.findUnique({
-    where: { id: session.user.id },
-    select: {
-      name: true,
-      email: true,
-      phone: true,
-      studentId: true,
-      avatarUrl: true,
-      signatureUrl: true,
-      role: true,
-      isPasswordChanged: true,
-      createdAt: true,
-    },
-  });
+  // signatureUrl mungkin belum tersedia di DB kalau migration terbaru belum
+  // dijalankan (mis. build Vercel yang lolos tapi migrate deploy gagal).
+  // Kita coba select dulu; kalau kolom belum ada, fallback tanpa signatureUrl
+  // supaya halaman profil tetap bisa dibuka.
+  let user: {
+    name: string;
+    email: string;
+    phone: string | null;
+    studentId: string | null;
+    avatarUrl: string | null;
+    signatureUrl: string | null;
+    role: Role;
+    isPasswordChanged: boolean;
+    createdAt: Date;
+  } | null = null;
+
+  try {
+    user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        name: true,
+        email: true,
+        phone: true,
+        studentId: true,
+        avatarUrl: true,
+        signatureUrl: true,
+        role: true,
+        isPasswordChanged: true,
+        createdAt: true,
+      },
+    });
+  } catch (err) {
+    console.warn(
+      "[profil] select signatureUrl gagal, fallback tanpa TTD:",
+      err instanceof Error ? err.message : err,
+    );
+    const fallback = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        name: true,
+        email: true,
+        phone: true,
+        studentId: true,
+        avatarUrl: true,
+        role: true,
+        isPasswordChanged: true,
+        createdAt: true,
+      },
+    });
+    if (fallback) user = { ...fallback, signatureUrl: null };
+  }
+
   if (!user) redirect("/login");
 
   return (
