@@ -6,6 +6,19 @@ import { SuratHeader } from "./header";
 import { styles as base } from "./styles";
 
 type Attendee = { name: string; nim?: string; signature?: string | null };
+type AbsentStatus = "IZIN" | "SAKIT" | "TANPA_KETERANGAN";
+type Absentee = {
+  name: string;
+  nim?: string;
+  status: AbsentStatus;
+  keterangan?: string;
+};
+
+const ABSENT_LABEL: Record<AbsentStatus, string> = {
+  IZIN: "Izin",
+  SAKIT: "Sakit",
+  TANPA_KETERANGAN: "Tanpa Keterangan",
+};
 
 type Data = {
   namaKegiatan: string;
@@ -15,6 +28,7 @@ type Data = {
   penyelenggara?: string;
   penyelenggaraLabel?: string;
   attendees: Attendee[];
+  absentees?: Absentee[];
 };
 
 // Style khusus daftar hadir — dipisah supaya bisa dituning agresif (kompak,
@@ -107,6 +121,69 @@ const dh = StyleSheet.create({
     maxWidth: 100,
     objectFit: "contain",
   },
+  absentSection: {
+    marginTop: 10,
+  },
+  absentHeading: {
+    fontFamily: "Times-Bold",
+    fontSize: 10,
+    marginBottom: 3,
+  },
+  absentTable: {
+    borderWidth: 1,
+    borderColor: "#000",
+  },
+  absentHeaderRow: {
+    flexDirection: "row",
+    backgroundColor: "#e5e5e5",
+  },
+  absentRow: {
+    flexDirection: "row",
+    borderTopWidth: 0.5,
+    borderColor: "#000",
+    minHeight: 20,
+  },
+  absCellNo: {
+    width: 28,
+    borderRightWidth: 0.5,
+    borderColor: "#000",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 3,
+    paddingHorizontal: 2,
+  },
+  absCellName: {
+    flex: 2,
+    borderRightWidth: 0.5,
+    borderColor: "#000",
+    justifyContent: "center",
+    paddingVertical: 3,
+    paddingHorizontal: 6,
+  },
+  absCellNim: {
+    width: 78,
+    borderRightWidth: 0.5,
+    borderColor: "#000",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 3,
+    paddingHorizontal: 2,
+  },
+  absCellStatus: {
+    width: 80,
+    borderRightWidth: 0.5,
+    borderColor: "#000",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 3,
+    paddingHorizontal: 2,
+  },
+  absCellKet: {
+    flex: 1.6,
+    justifyContent: "center",
+    paddingVertical: 3,
+    paddingHorizontal: 6,
+  },
   footer: {
     marginTop: 14,
     alignItems: "flex-end",
@@ -191,6 +268,50 @@ export function DaftarHadirPDF({ data }: { data: Data }) {
             </View>
           ))}
         </View>
+
+        {data.absentees && data.absentees.length > 0 && (
+          <View style={dh.absentSection} wrap={false}>
+            <Text style={dh.absentHeading}>Peserta Tidak Hadir</Text>
+            <View style={dh.absentTable}>
+              <View style={dh.absentHeaderRow} fixed>
+                <View style={dh.absCellNo}>
+                  <Text style={dh.headerText}>No</Text>
+                </View>
+                <View style={dh.absCellName}>
+                  <Text style={dh.headerText}>Nama</Text>
+                </View>
+                <View style={dh.absCellNim}>
+                  <Text style={dh.headerText}>NIM</Text>
+                </View>
+                <View style={dh.absCellStatus}>
+                  <Text style={dh.headerText}>Status</Text>
+                </View>
+                <View style={dh.absCellKet}>
+                  <Text style={dh.headerText}>Keterangan</Text>
+                </View>
+              </View>
+              {data.absentees.map((a, idx) => (
+                <View key={idx} style={dh.absentRow} wrap={false}>
+                  <View style={dh.absCellNo}>
+                    <Text style={dh.cellText}>{idx + 1}</Text>
+                  </View>
+                  <View style={dh.absCellName}>
+                    <Text style={dh.cellText}>{a.name}</Text>
+                  </View>
+                  <View style={dh.absCellNim}>
+                    <Text style={dh.cellText}>{a.nim ?? ""}</Text>
+                  </View>
+                  <View style={dh.absCellStatus}>
+                    <Text style={dh.cellText}>{ABSENT_LABEL[a.status]}</Text>
+                  </View>
+                  <View style={dh.absCellKet}>
+                    <Text style={dh.cellText}>{a.keterangan ?? ""}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
 
         <View style={dh.footer} wrap={false}>
           <Text style={dh.footerCity}>

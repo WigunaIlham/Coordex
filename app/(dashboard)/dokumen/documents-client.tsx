@@ -36,6 +36,15 @@ type Field = {
   required: boolean;
 };
 
+type AbsentStatus = "IZIN" | "SAKIT" | "TANPA_KETERANGAN";
+type AbsentEntry = { userId: string; status: AbsentStatus; keterangan?: string };
+
+const ABSENT_STATUS_LABEL: Record<AbsentStatus, string> = {
+  IZIN: "Izin",
+  SAKIT: "Sakit",
+  TANPA_KETERANGAN: "Tanpa Keterangan",
+};
+
 type Template = {
   type: string;
   label: string;
@@ -267,8 +276,8 @@ function CreateDocumentDialog({
   const [templateType, setTemplateType] = useState(templates[0]?.type ?? "");
   const [title, setTitle] = useState("");
   // formData is a heterogenous bag: strings for text/textarea/date/number,
-  // string[] for attendees. We keep it typed loosely for form storage.
-  const [formData, setFormData] = useState<Record<string, string | string[]>>({});
+  // string[] for attendees, AbsentEntry[] for absentees. Kept loosely typed.
+  const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [creating, setCreating] = useState(false);
 
   const current = useMemo(
@@ -289,7 +298,7 @@ function CreateDocumentDialog({
     }
   }, [open, templates]);
 
-  function setField(k: string, v: string | string[]) {
+  function setField(k: string, v: unknown) {
     setFormData((prev) => ({ ...prev, [k]: v }));
   }
 
@@ -422,7 +431,13 @@ function CreateDocumentDialog({
           <div className="grid gap-3 sm:grid-cols-2">
             {current.fields.map((f) => {
               const val = formData[f.key];
-              const isFull = f.type === "textarea" || f.type === "attendees";
+              const isFull =
+                f.type === "textarea" ||
+                f.type === "attendees" ||
+                f.type === "absentees";
+              const nonAdminMembers = members.filter(
+                (m) => m.role !== "SUPER_ADMIN",
+              );
               return (
                 <div
                   key={f.key}
@@ -444,12 +459,12 @@ function CreateDocumentDialog({
                   ) : f.type === "attendees" ? (
                     <AttendeesPicker
                       field={f.key}
-                      selected={Array.isArray(val) ? val : []}
+                      selected={
+                        Array.isArray(val) ? (val as string[]) : []
+                      }
                       members={
-                        // Daftar hadir hanya untuk anggota lapangan — admin
-                        // (SUPER_ADMIN) tidak ikut absensi kegiatan.
                         templateType === "DAFTAR_HADIR"
-                          ? members.filter((m) => m.role !== "SUPER_ADMIN")
+                          ? nonAdminMembers
                           : members
                       }
                       onToggle={(id) => toggleAttendee(f.key, id)}
@@ -457,11 +472,27 @@ function CreateDocumentDialog({
                         selectAllAttendees(
                           f.key,
                           templateType === "DAFTAR_HADIR"
-                            ? members.filter((m) => m.role !== "SUPER_ADMIN")
+                            ? nonAdminMembers
                             : members,
                         )
                       }
                       onClear={() => clearAttendees(f.key)}
+                      disabled={creating}
+                    />
+                  ) : f.type === "absentees" ? (
+                    <AbsenteesPicker
+                      value={
+                        Array.isArray(val) ? (val as AbsentEntry[]) : []
+                      }
+                      // Exclude peserta yang sudah dicentang hadir supaya tidak
+                      // dobel-input. Admin juga tetap dikecualikan.
+                      members={nonAdminMembers.filter((m) => {
+                        const hadir = formData["pesertaHadirIds"];
+                        return !(
+                          Array.isArray(hadir) && (hadir as string[]).includes(m.id)
+                        );
+                      })}
+                      onChange={(next) => setField(f.key, next)}
                       disabled={creating}
                     />
                   ) : (
@@ -605,3 +636,141 @@ function AttendeesPicker({
     </div>
   );
 }
+
+function AbsenteesPicker({
+  value,
+  members,
+  onChange,
+  disabled,
+}: {
+  value: AbsentEntry[];
+  members: Member[];
+  onChange: (next: AbsentEntry[]) => void;
+  disabled?: boolean;
+}) {
+  const byId = new Map(value.map((v) => [v.userId, v]));
+
+  function toggle(userId: string) {
+    if (byId.has(userId)) {
+      onChange(value.filter((v) => v.userId !== userId));
+    } else {
+      onChange([...value, { userId, status: "IZIN", keterangan: "" }]);
+    }
+  }
+
+  function patch(userId: string, patch: Partial<AbsentEntry>) {
+    onChange(
+      value.map((v) => (v.userId === userId ? { ...v, ...patch } : v)),
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-muted-foreground">
+          {value.length} dicatat tidak hadir
+        </span>
+        {value.length > 0 && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => onChange([])}
+            disabled={disabled}
+          >
+            Kosongkan
+          </Button>
+        )}
+      </div>
+
+      <div
+        role="group"
+        aria-label="Peserta tidak hadir"
+        className="max-h-64 space-y-1.5 overflow-y-auto rounded-lg border p-2"
+      >
+        {members.length === 0 ? (
+          <p className="py-4 text-center text-xs text-muted-foreground">
+            Semua anggota sudah dicentang hadir.
+          </p>
+        ) : (
+          members.map((m) => {
+            const entry = byId.get(m.id);
+            const checked = !!entry;
+            return (
+              <div
+                key={m.id}
+                className={cn(
+                  "rounded-md border p-2 text-xs transition-colors",
+                  checked
+                    ? "border-amber-300/70 bg-amber-50/60 dark:bg-amber-900/10"
+                    : "border-transparent hover:bg-muted",
+                )}
+              >
+                <label className="flex cursor-pointer items-start gap-2">
+                  <Checkbox
+                    checked={checked}
+                    onCheckedChange={() => toggle(m.id)}
+                    disabled={disabled}
+                    aria-label={m.name}
+                    className="mt-0.5"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium">{m.name}</p>
+                    {m.studentId && (
+                      <p className="text-[10px] text-muted-foreground">
+                        NIM {m.studentId}
+                      </p>
+                    )}
+                  </div>
+                </label>
+
+                {checked && entry && (
+                  <div className="mt-2 grid grid-cols-1 gap-2 pl-6 sm:grid-cols-[140px_1fr]">
+                    <Select
+                      value={entry.status}
+                      onValueChange={(v) =>
+                        patch(m.id, { status: v as AbsentStatus })
+                      }
+                      disabled={disabled}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="IZIN">Izin</SelectItem>
+                        <SelectItem value="SAKIT">Sakit</SelectItem>
+                        <SelectItem value="TANPA_KETERANGAN">
+                          Tanpa Keterangan
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      value={entry.keterangan ?? ""}
+                      onChange={(e) =>
+                        patch(m.id, { keterangan: e.target.value })
+                      }
+                      placeholder="Keterangan (opsional)"
+                      disabled={disabled}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      <p className="text-[11px] leading-relaxed text-muted-foreground">
+        Centang siapa yang tidak hadir, lalu pilih statusnya. Anggota yang sudah
+        di-ceklis hadir otomatis tidak muncul di sini.
+      </p>
+    </div>
+  );
+}
+
+// Ekspor ke module scope supaya ABSENT_STATUS_LABEL bisa dipakai kalau
+// suatu saat butuh ditampilkan di kartu list dokumen.
+export { ABSENT_STATUS_LABEL };
+export type { AbsentEntry, AbsentStatus };

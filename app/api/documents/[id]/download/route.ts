@@ -103,12 +103,19 @@ export async function GET(
   // Shared extra payload: resolved attendees list, used by DAFTAR_HADIR (auto
   // from active team members) and NOTULEN_RAPAT (from user-picked checklist).
   // signature is a base64 data URI — renderers embed it directly, no network.
+  type AbsentStatus = "IZIN" | "SAKIT" | "TANPA_KETERANGAN";
   let extra:
     | {
         attendees?: {
           name: string;
           nim?: string;
           signature?: string | null;
+        }[];
+        absentees?: {
+          name: string;
+          nim?: string;
+          status: AbsentStatus;
+          keterangan?: string;
         }[];
       }
     | undefined;
@@ -145,12 +152,65 @@ export async function GET(
         )
       : members.map(() => null);
 
+    // Resolve daftar tidak hadir (khusus DAFTAR_HADIR).
+    let absentees:
+      | {
+          name: string;
+          nim?: string;
+          status: AbsentStatus;
+          keterangan?: string;
+        }[]
+      | undefined;
+    if (template === "DAFTAR_HADIR") {
+      const rawAbs = formData["absentees"];
+      const entries = Array.isArray(rawAbs)
+        ? rawAbs.filter(
+            (
+              v,
+            ): v is {
+              userId: string;
+              status: AbsentStatus;
+              keterangan?: string;
+            } =>
+              !!v &&
+              typeof v === "object" &&
+              typeof (v as { userId?: unknown }).userId === "string" &&
+              typeof (v as { status?: unknown }).status === "string",
+          )
+        : [];
+      if (entries.length > 0) {
+        const absentUsers = await db.user.findMany({
+          where: {
+            id: { in: entries.map((e) => e.userId) },
+            role: { not: "SUPER_ADMIN" },
+          },
+          select: { id: true, name: true, studentId: true },
+        });
+        const map = new Map(absentUsers.map((u) => [u.id, u]));
+        absentees = entries
+          .map((e) => {
+            const u = map.get(e.userId);
+            if (!u) return null;
+            return {
+              name: u.name,
+              nim: u.studentId ?? undefined,
+              status: e.status,
+              keterangan: e.keterangan?.trim() || undefined,
+            };
+          })
+          .filter((v): v is NonNullable<typeof v> => v !== null)
+          // Urutan tetap konsisten (alfabet nama) supaya dokumen deterministik.
+          .sort((a, b) => a.name.localeCompare(b.name));
+      }
+    }
+
     extra = {
       attendees: members.map((m, i) => ({
         name: m.name,
         nim: m.studentId ?? undefined,
         signature: signatures[i],
       })),
+      absentees,
     };
   }
 

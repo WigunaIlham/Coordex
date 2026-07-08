@@ -174,6 +174,12 @@ export const DOCUMENT_TEMPLATE_FIELDS = {
       type: "attendees",
       required: true,
     },
+    {
+      key: "absentees",
+      label: "Peserta Tidak Hadir (opsional)",
+      type: "absentees",
+      required: false,
+    },
   ],
   LPJ: [
     {key: "namaKegiatan", label: "Nama Kegiatan", type: "text", required: true},

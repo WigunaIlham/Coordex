@@ -255,6 +255,13 @@ function decodeSignatureDataUri(
   }
 }
 
+type AbsentStatus = "IZIN" | "SAKIT" | "TANPA_KETERANGAN";
+const ABSENT_LABEL: Record<AbsentStatus, string> = {
+  IZIN: "Izin",
+  SAKIT: "Sakit",
+  TANPA_KETERANGAN: "Tanpa Keterangan",
+};
+
 export async function renderDocumentDocx(
   template: SupportedTemplate,
   formData: Record<string, unknown>,
@@ -263,6 +270,12 @@ export async function renderDocumentDocx(
       name: string;
       nim?: string;
       signature?: string | null;
+    }[];
+    absentees?: {
+      name: string;
+      nim?: string;
+      status: AbsentStatus;
+      keterangan?: string;
     }[];
   },
 ): Promise<Buffer> {
@@ -579,6 +592,82 @@ export async function renderDocumentDocx(
                 width: { size: 100, type: WidthType.PERCENTAGE },
                 rows: [headerRow, ...rows],
               }),
+
+              // Section Peserta Tidak Hadir — kompak, di bawah tabel utama.
+              ...(extra?.absentees && extra.absentees.length > 0
+                ? [
+                    new Paragraph({
+                      spacing: { before: 200, after: 60 },
+                      children: [
+                        new TextRun({
+                          text: "Peserta Tidak Hadir",
+                          bold: true,
+                          size: 20,
+                        }),
+                      ],
+                    }),
+                    new Table({
+                      width: { size: 100, type: WidthType.PERCENTAGE },
+                      rows: [
+                        new TableRow({
+                          tableHeader: true,
+                          height: { value: 320, rule: "atLeast" },
+                          children: [
+                            dhCell("No", {
+                              bold: true,
+                              align: AlignmentType.CENTER,
+                              width: 700,
+                            }),
+                            dhCell("Nama", {
+                              bold: true,
+                              align: AlignmentType.CENTER,
+                            }),
+                            dhCell("NIM", {
+                              bold: true,
+                              align: AlignmentType.CENTER,
+                              width: 1600,
+                            }),
+                            dhCell("Status", {
+                              bold: true,
+                              align: AlignmentType.CENTER,
+                              width: 1600,
+                            }),
+                            dhCell("Keterangan", {
+                              bold: true,
+                              align: AlignmentType.CENTER,
+                              width: 3000,
+                            }),
+                          ],
+                        }),
+                        ...extra.absentees.map(
+                          (a, idx) =>
+                            new TableRow({
+                              cantSplit: true,
+                              height: { value: 380, rule: "atLeast" },
+                              children: [
+                                dhCell(String(idx + 1), {
+                                  align: AlignmentType.CENTER,
+                                  width: 700,
+                                }),
+                                dhCell(a.name),
+                                dhCell(a.nim ?? "", {
+                                  align: AlignmentType.CENTER,
+                                  width: 1600,
+                                }),
+                                dhCell(ABSENT_LABEL[a.status], {
+                                  align: AlignmentType.CENTER,
+                                  width: 1600,
+                                }),
+                                dhCell(a.keterangan ?? "", {
+                                  width: 3000,
+                                }),
+                              ],
+                            }),
+                        ),
+                      ],
+                    }),
+                  ]
+                : []),
 
               // Footer TTD ketua pelaksana — rata kanan, dgn ruang manual utk
               // tanda tangan basah.

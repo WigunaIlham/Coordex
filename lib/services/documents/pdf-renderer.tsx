@@ -6,6 +6,8 @@ import { LPJPDF } from "./pdf/lpj";
 import { NotulenRapatPDF } from "./pdf/notulen-rapat";
 import { SuratUndanganPDF } from "./pdf/surat-undangan";
 
+type AbsentStatus = "IZIN" | "SAKIT" | "TANPA_KETERANGAN";
+
 export async function renderDocumentPdf(
   template: SupportedTemplate,
   formData: Record<string, unknown>,
@@ -14,6 +16,12 @@ export async function renderDocumentPdf(
       name: string;
       nim?: string;
       signature?: string | null;
+    }[];
+    absentees?: {
+      name: string;
+      nim?: string;
+      status: AbsentStatus;
+      keterangan?: string;
     }[];
   },
 ): Promise<Buffer> {
@@ -43,6 +51,7 @@ export async function renderDocumentPdf(
               ? String(formData.penyelenggaraLabel)
               : undefined,
             attendees: extra?.attendees ?? [],
+            absentees: extra?.absentees ?? [],
           }}
         />
       );
