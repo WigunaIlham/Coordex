@@ -5,7 +5,7 @@ import { formatDate } from "@/lib/utils";
 import { SuratHeader } from "./header";
 import { styles } from "./styles";
 
-type Attendee = { name: string; nim?: string; signatureUrl?: string | null };
+type Attendee = { name: string; nim?: string; signature?: string | null };
 
 type Data = {
   namaKegiatan: string;
@@ -99,12 +99,11 @@ export function DaftarHadirPDF({ data }: { data: Data }) {
                   },
                 ]}
               >
-                {a.signatureUrl ? (
-                  // TTD digital dari profil user. Cell dibuat sedikit lebih
-                  // tinggi supaya gambar cukup terbaca; kalau tidak ada, kolom
-                  // tetap kosong untuk tanda tangan basah.
+                {a.signature ? (
+                  // TTD digital di-embed sebagai data URI (di-fetch di route),
+                  // supaya renderer tidak butuh network access.
                   <Image
-                    src={a.signatureUrl}
+                    src={a.signature}
                     style={{ maxHeight: 36, maxWidth: "100%" }}
                   />
                 ) : (

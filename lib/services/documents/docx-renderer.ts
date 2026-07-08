@@ -237,6 +237,24 @@ function hiddenTableBorders() {
   };
 }
 
+// Data URI → { buf, kind } untuk docx ImageRun. Kalau parse gagal, return null
+// dan cell dibiarkan kosong.
+function decodeSignatureDataUri(
+  dataUri: string | null | undefined,
+): { buf: Buffer; kind: "png" | "jpg" } | null {
+  if (!dataUri) return null;
+  const m = /^data:([^;]+);base64,(.+)$/i.exec(dataUri);
+  if (!m) return null;
+  const type = m[1].toLowerCase();
+  const kind: "png" | "jpg" =
+    type.includes("jpeg") || type.includes("jpg") ? "jpg" : "png";
+  try {
+    return { buf: Buffer.from(m[2], "base64"), kind };
+  } catch {
+    return null;
+  }
+}
+
 export async function renderDocumentDocx(
   template: SupportedTemplate,
   formData: Record<string, unknown>,
@@ -244,7 +262,7 @@ export async function renderDocumentDocx(
     attendees?: {
       name: string;
       nim?: string;
-      signatureUrl?: string | null;
+      signature?: string | null;
     }[];
   },
 ): Promise<Buffer> {
@@ -408,26 +426,10 @@ export async function renderDocumentDocx(
         ],
       });
 
-      // Ambil bytes TTD tiap peserta paralel — kalau URL gagal / user belum
-      // upload, cell dibiarkan kosong untuk tanda tangan basah.
-      const signatures = await Promise.all(
-        attendees.map(async (a) => {
-          if (!a.signatureUrl) return null;
-          try {
-            const res = await fetch(a.signatureUrl);
-            if (!res.ok) return null;
-            const buf = Buffer.from(await res.arrayBuffer());
-            const type = res.headers.get("content-type") ?? "";
-            const kind = type.includes("jpeg") || type.includes("jpg")
-              ? "jpg"
-              : type.includes("webp")
-                ? "png" // docx doesn't ship webp; user seharusnya pakai PNG/JPG
-                : "png";
-            return { buf, kind: kind as "png" | "jpg" };
-          } catch {
-            return null;
-          }
-        }),
+      // TTD sudah pre-fetch di route sebagai data URI; kita cuma decode ke
+      // bytes untuk ImageRun. Kalau kosong / gagal → cell dibiarkan kosong.
+      const signatures = attendees.map((a) =>
+        decodeSignatureDataUri(a.signature),
       );
 
       const rows = attendees.map((a, idx) => {

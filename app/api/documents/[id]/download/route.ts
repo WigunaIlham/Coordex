@@ -15,9 +15,77 @@ function safeFileName(s: string) {
     .slice(0, 60);
 }
 
+type MemberRow = {
+  name: string;
+  studentId: string | null;
+  signatureUrl?: string | null;
+};
+
+// Fetch signature bytes and convert to a data URI. This runs at request time
+// on Node runtime, so the renderers never touch the network — makes PDF/DOCX
+// generation deterministic (no half-broken images when Supabase is slow).
+async function fetchSignatureDataUri(
+  url: string | null | undefined,
+): Promise<string | null> {
+  if (!url) return null;
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timer);
+    if (!res.ok) return null;
+    const type = res.headers.get("content-type") ?? "image/png";
+    const buf = Buffer.from(await res.arrayBuffer());
+    return `data:${type};base64,${buf.toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
+
+// Query members with signatureUrl. If the DB column isn't there yet (fresh
+// deploy where migration hasn't run), fall back to a query without it — the
+// documents still render, just without embedded TTD.
+async function findMembersWithOptionalSignature(
+  where: Parameters<typeof db.user.findMany>[0] extends
+    | { where?: infer W }
+    | undefined
+    ? W
+    : never,
+  wantSignature: boolean,
+): Promise<MemberRow[]> {
+  if (!wantSignature) {
+    const rows = await db.user.findMany({
+      where,
+      select: { name: true, studentId: true },
+      orderBy: { name: "asc" },
+    });
+    return rows.map((r) => ({ ...r, signatureUrl: null }));
+  }
+  try {
+    const rows = await db.user.findMany({
+      where,
+      select: { name: true, studentId: true, signatureUrl: true },
+      orderBy: { name: "asc" },
+    });
+    return rows;
+  } catch (err) {
+    // Kolom belum ada → migration belum jalan. Log dan lanjut tanpa TTD.
+    console.warn(
+      "[download] signatureUrl select gagal, fallback tanpa TTD:",
+      err instanceof Error ? err.message : err,
+    );
+    const rows = await db.user.findMany({
+      where,
+      select: { name: true, studentId: true },
+      orderBy: { name: "asc" },
+    });
+    return rows.map((r) => ({ ...r, signatureUrl: null }));
+  }
+}
+
 export async function GET(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
   if (!session?.user?.id) return apiErr("Unauthorized", 401);
@@ -34,92 +102,84 @@ export async function GET(
 
   // Shared extra payload: resolved attendees list, used by DAFTAR_HADIR (auto
   // from active team members) and NOTULEN_RAPAT (from user-picked checklist).
-  // signatureUrl hanya ditumpahkan ke DAFTAR_HADIR — renderer memasangnya
-  // sebagai gambar di kolom Tanda Tangan bila ada.
+  // signature is a base64 data URI — renderers embed it directly, no network.
   let extra:
     | {
         attendees?: {
           name: string;
           nim?: string;
-          signatureUrl?: string | null;
+          signature?: string | null;
         }[];
       }
     | undefined;
 
   if (template === "DAFTAR_HADIR" || template === "NOTULEN_RAPAT") {
-    // pesertaHadirIds is a checklist of userIds; resolve to names for the doc.
-    // Fallback for legacy DAFTAR_HADIR docs (created before the checklist
-    // existed): if no selection is stored, use the full active roster.
     const raw = formData["pesertaHadirIds"];
     const ids = Array.isArray(raw)
       ? raw.filter((v): v is string => typeof v === "string")
       : [];
-    const includeSignature = template === "DAFTAR_HADIR";
+    const wantSignature = template === "DAFTAR_HADIR";
+    let members: MemberRow[] = [];
+
     if (ids.length > 0) {
-      // Untuk DAFTAR_HADIR, admin (SUPER_ADMIN) tidak pernah masuk tabel
-      // — walau ID-nya sempat tersimpan di formData lama.
-      const members = await db.user.findMany({
-        where: {
+      members = await findMembersWithOptionalSignature(
+        {
           id: { in: ids },
           ...(template === "DAFTAR_HADIR"
             ? { role: { not: "SUPER_ADMIN" } }
             : {}),
         },
-        select: {
-          name: true,
-          studentId: true,
-          ...(includeSignature ? { signatureUrl: true } : {}),
-        },
-        orderBy: { name: "asc" },
-      });
-      extra = {
-        attendees: members.map((m) => ({
-          name: m.name,
-          nim: m.studentId ?? undefined,
-          signatureUrl: includeSignature
-            ? ((m as { signatureUrl?: string | null }).signatureUrl ?? null)
-            : undefined,
-        })),
-      };
+        wantSignature,
+      );
     } else if (template === "DAFTAR_HADIR") {
-      // Admin (SUPER_ADMIN) tidak ikut daftar hadir kegiatan lapangan.
-      const members = await db.user.findMany({
-        where: { isActive: true, role: { not: "SUPER_ADMIN" } },
-        select: { name: true, studentId: true, signatureUrl: true },
-        orderBy: { name: "asc" },
-      });
-      extra = {
-        attendees: members.map((m) => ({
-          name: m.name,
-          nim: m.studentId ?? undefined,
-          signatureUrl: m.signatureUrl ?? null,
-        })),
-      };
-    } else {
-      extra = { attendees: [] };
+      members = await findMembersWithOptionalSignature(
+        { isActive: true, role: { not: "SUPER_ADMIN" } },
+        wantSignature,
+      );
     }
+
+    // Pre-fetch semua TTD paralel supaya renderer tinggal embed base64.
+    const signatures = wantSignature
+      ? await Promise.all(
+          members.map((m) => fetchSignatureDataUri(m.signatureUrl)),
+        )
+      : members.map(() => null);
+
+    extra = {
+      attendees: members.map((m, i) => ({
+        name: m.name,
+        nim: m.studentId ?? undefined,
+        signature: signatures[i],
+      })),
+    };
   }
 
   const baseFileName = safeFileName(doc.title || doc.templateType);
 
-  if (format === "docx") {
-    const buffer = await renderDocumentDocx(template, formData, extra);
+  try {
+    if (format === "docx") {
+      const buffer = await renderDocumentDocx(template, formData, extra);
+      return new Response(new Uint8Array(buffer), {
+        status: 200,
+        headers: {
+          "Content-Type":
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "Content-Disposition": `attachment; filename="${baseFileName}.docx"`,
+        },
+      });
+    }
+
+    const buffer = await renderDocumentPdf(template, formData, extra);
     return new Response(new Uint8Array(buffer), {
       status: 200,
       headers: {
-        "Content-Type":
-          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "Content-Disposition": `attachment; filename="${baseFileName}.docx"`,
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${baseFileName}.pdf"`,
       },
     });
+  } catch (err) {
+    console.error("[download] render gagal:", err);
+    const msg = err instanceof Error ? err.message : "Gagal render dokumen";
+    return apiErr(msg, 500, "RENDER_FAILED");
   }
-
-  const buffer = await renderDocumentPdf(template, formData, extra);
-  return new Response(new Uint8Array(buffer), {
-    status: 200,
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${baseFileName}.pdf"`,
-    },
-  });
 }

@@ -13,7 +13,7 @@ export async function renderDocumentPdf(
     attendees?: {
       name: string;
       nim?: string;
-      signatureUrl?: string | null;
+      signature?: string | null;
     }[];
   },
 ): Promise<Buffer> {
