@@ -413,21 +413,55 @@ export async function renderDocumentDocx(
 
     case "DAFTAR_HADIR": {
       const attendees = extra?.attendees ?? [];
-      const cell = (text: string, opts?: { bold?: boolean; align?: Align }) =>
-        new TableCell({ children: [p(text, opts)] });
+
+      // Helper cell dengan ukuran font seragam & vertical center.
+      const dhCell = (
+        text: string,
+        opts?: { bold?: boolean; align?: Align; width?: number },
+      ) =>
+        new TableCell({
+          width: opts?.width
+            ? { size: opts.width, type: WidthType.DXA }
+            : undefined,
+          margins: { top: 60, bottom: 60, left: 80, right: 80 },
+          children: [
+            new Paragraph({
+              alignment: opts?.align,
+              spacing: { after: 0 },
+              children: [
+                new TextRun({
+                  text,
+                  bold: opts?.bold,
+                  size: 20, // 10pt (docx pakai half-point)
+                }),
+              ],
+            }),
+          ],
+        });
+
+      // Lebar kolom dalam DXA (twips): No 700, NIM 1800, TTD 2400, sisanya
+      // ke Nama. Bikin table punya struktur konsisten & tidak ngeplak.
+      const W = { no: 700, nim: 1800, ttd: 2400 };
 
       const headerRow = new TableRow({
         tableHeader: true,
+        height: { value: 400, rule: "atLeast" },
         children: [
-          cell("No", { bold: true, align: AlignmentType.CENTER }),
-          cell("Nama Lengkap", { bold: true }),
-          cell("NIM", { bold: true }),
-          cell("Tanda Tangan", { bold: true, align: AlignmentType.CENTER }),
+          dhCell("No", { bold: true, align: AlignmentType.CENTER, width: W.no }),
+          dhCell("Nama Lengkap", { bold: true, align: AlignmentType.CENTER }),
+          dhCell("NIM", {
+            bold: true,
+            align: AlignmentType.CENTER,
+            width: W.nim,
+          }),
+          dhCell("Tanda Tangan", {
+            bold: true,
+            align: AlignmentType.CENTER,
+            width: W.ttd,
+          }),
         ],
       });
 
-      // TTD sudah pre-fetch di route sebagai data URI; kita cuma decode ke
-      // bytes untuk ImageRun. Kalau kosong / gagal → cell dibiarkan kosong.
       const signatures = attendees.map((a) =>
         decodeSignatureDataUri(a.signature),
       );
@@ -437,21 +471,37 @@ export async function renderDocumentDocx(
         const ttdChild = sig
           ? new Paragraph({
               alignment: AlignmentType.CENTER,
+              spacing: { after: 0 },
               children: [
                 new ImageRun({
                   data: sig.buf,
-                  transformation: { width: 100, height: 40 },
+                  transformation: { width: 90, height: 30 },
                   type: sig.kind,
                 }),
               ],
             })
-          : p(" ");
+          : new Paragraph({
+              spacing: { after: 0 },
+              children: [new TextRun({ text: " ", size: 20 })],
+            });
         return new TableRow({
+          height: { value: 500, rule: "atLeast" },
+          cantSplit: true,
           children: [
-            cell(String(idx + 1), { align: AlignmentType.CENTER }),
-            cell(a.name),
-            cell(a.nim ?? ""),
-            new TableCell({ children: [ttdChild] }),
+            dhCell(String(idx + 1), {
+              align: AlignmentType.CENTER,
+              width: W.no,
+            }),
+            dhCell(a.name),
+            dhCell(a.nim ?? "", {
+              align: AlignmentType.CENTER,
+              width: W.nim,
+            }),
+            new TableCell({
+              width: { size: W.ttd, type: WidthType.DXA },
+              margins: { top: 20, bottom: 20, left: 40, right: 40 },
+              children: [ttdChild],
+            }),
           ],
         });
       });
@@ -459,40 +509,104 @@ export async function renderDocumentDocx(
       doc = new Document({
         sections: [
           {
+            properties: {
+              page: {
+                margin: {
+                  top: 720,
+                  bottom: 720,
+                  left: 1000,
+                  right: 1000,
+                },
+              },
+            },
             children: [
               ...kop("Daftar Hadir"),
 
-              p(get("namaKegiatan"), {
-                bold: true,
-                align: AlignmentType.CENTER,
-                size: 24,
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 60, after: 40 },
+                children: [
+                  new TextRun({
+                    text: get("namaKegiatan"),
+                    bold: true,
+                    size: 24, // 12pt
+                    allCaps: true,
+                  }),
+                ],
               }),
-              p(
-                `${formatDate(get("tanggal"), { dateStyle: "full" })}${
-                  has("waktu") ? ` · ${get("waktu")}` : ""
-                }`,
-                { align: AlignmentType.CENTER, size: 20 },
-              ),
-              p(`Tempat: ${get("tempat")}`, {
-                align: AlignmentType.CENTER,
-                size: 20,
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { after: 0 },
+                children: [
+                  new TextRun({
+                    text: `${formatDate(get("tanggal"), { dateStyle: "full" })}${
+                      has("waktu") ? ` · ${get("waktu")}` : ""
+                    }`,
+                    size: 20,
+                  }),
+                ],
+              }),
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { after: 0 },
+                children: [
+                  new TextRun({ text: `Tempat: ${get("tempat")}`, size: 20 }),
+                ],
               }),
               ...(has("penyelenggara")
                 ? [
-                    p(
-                      `${(get("penyelenggaraLabel").trim() || "Penyelenggara")}: ${get("penyelenggara")}`,
-                      {
-                        align: AlignmentType.CENTER,
-                        size: 20,
-                      },
-                    ),
+                    new Paragraph({
+                      alignment: AlignmentType.CENTER,
+                      spacing: { after: 120 },
+                      children: [
+                        new TextRun({
+                          text: `${
+                            get("penyelenggaraLabel").trim() || "Penyelenggara"
+                          }: ${get("penyelenggara")}`,
+                          size: 20,
+                        }),
+                      ],
+                    }),
                   ]
-                : []),
-              emptyLine(),
+                : [
+                    new Paragraph({
+                      spacing: { after: 120 },
+                      children: [new TextRun({ text: "" })],
+                    }),
+                  ]),
 
               new Table({
                 width: { size: 100, type: WidthType.PERCENTAGE },
                 rows: [headerRow, ...rows],
+              }),
+
+              // Footer TTD ketua pelaksana — rata kanan, dgn ruang manual utk
+              // tanda tangan basah.
+              new Paragraph({
+                alignment: AlignmentType.RIGHT,
+                spacing: { before: 240, after: 0 },
+                children: [
+                  new TextRun({
+                    text: `${DOCUMENT_HEADER.city}, ${formatDate(get("tanggal"), { dateStyle: "long" })}`,
+                    size: 20,
+                  }),
+                ],
+              }),
+              new Paragraph({
+                alignment: AlignmentType.RIGHT,
+                spacing: { after: 0 },
+                children: [new TextRun({ text: "Ketua Pelaksana", size: 20 })],
+              }),
+              new Paragraph({
+                alignment: AlignmentType.RIGHT,
+                spacing: { before: 800, after: 0 },
+                children: [
+                  new TextRun({
+                    text: "(______________________)",
+                    bold: true,
+                    size: 20,
+                  }),
+                ],
               }),
             ],
           },

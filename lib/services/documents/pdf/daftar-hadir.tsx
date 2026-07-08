@@ -1,9 +1,9 @@
-import { Document, Image, Page, Text, View } from "@react-pdf/renderer";
+import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 
 import { DOCUMENT_HEADER } from "@/lib/constants";
 import { formatDate } from "@/lib/utils";
 import { SuratHeader } from "./header";
-import { styles } from "./styles";
+import { styles as base } from "./styles";
 
 type Attendee = { name: string; nim?: string; signature?: string | null };
 
@@ -17,111 +17,188 @@ type Data = {
   attendees: Attendee[];
 };
 
+// Style khusus daftar hadir — dipisah supaya bisa dituning agresif (kompak,
+// muat 1 halaman A4) tanpa ganggu template lain.
+const dh = StyleSheet.create({
+  page: {
+    ...base.page,
+    paddingTop: 28,
+    paddingBottom: 32,
+    paddingHorizontal: 48,
+    fontSize: 10,
+    lineHeight: 1.25,
+  },
+  activityTitle: {
+    fontFamily: "Times-Bold",
+    fontSize: 12,
+    textAlign: "center",
+    marginTop: 2,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  metaBlock: {
+    alignItems: "center",
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  metaLine: {
+    fontSize: 10,
+    marginTop: 1,
+  },
+  table: {
+    borderWidth: 1,
+    borderColor: "#000",
+    marginTop: 4,
+  },
+  tableRow: {
+    flexDirection: "row",
+    borderTopWidth: 0.5,
+    borderColor: "#000",
+  },
+  tableHeaderRow: {
+    flexDirection: "row",
+    backgroundColor: "#e5e5e5",
+  },
+  cellNo: {
+    width: 28,
+    borderRightWidth: 0.5,
+    borderColor: "#000",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 3,
+    paddingHorizontal: 2,
+  },
+  cellName: {
+    flex: 3,
+    borderRightWidth: 0.5,
+    borderColor: "#000",
+    justifyContent: "center",
+    paddingVertical: 3,
+    paddingHorizontal: 6,
+  },
+  cellNim: {
+    width: 78,
+    borderRightWidth: 0.5,
+    borderColor: "#000",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 3,
+    paddingHorizontal: 2,
+  },
+  cellTtd: {
+    width: 110,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 2,
+    paddingHorizontal: 3,
+  },
+  cellText: {
+    fontSize: 9.5,
+  },
+  headerText: {
+    fontFamily: "Times-Bold",
+    fontSize: 10,
+  },
+  rowHeight: {
+    minHeight: 24,
+  },
+  ttdImage: {
+    maxHeight: 20,
+    maxWidth: 100,
+    objectFit: "contain",
+  },
+  footer: {
+    marginTop: 14,
+    alignItems: "flex-end",
+  },
+  footerCity: {
+    fontSize: 10,
+  },
+  footerRole: {
+    fontSize: 10,
+    marginTop: 2,
+  },
+  footerName: {
+    fontFamily: "Times-Bold",
+    fontSize: 10,
+    textDecoration: "underline",
+    marginTop: 44,
+  },
+});
+
 export function DaftarHadirPDF({ data }: { data: Data }) {
+  const penyelenggaraLabel =
+    data.penyelenggaraLabel?.trim() || "Penyelenggara";
+
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" style={dh.page}>
         <SuratHeader subtitle="Daftar Hadir" />
 
-        {/* Judul kegiatan */}
-        <Text
-          style={{
-            ...styles.bold,
-            fontSize: 12,
-            textAlign: "center",
-            marginTop: 4,
-            marginBottom: 2,
-          }}
-        >
-          {data.namaKegiatan}
-        </Text>
+        <Text style={dh.activityTitle}>{data.namaKegiatan}</Text>
 
-        {/* Meta kegiatan */}
-        <View style={{ marginBottom: 10, alignItems: "center" }}>
-          <Text style={{ fontSize: 10 }}>
+        <View style={dh.metaBlock}>
+          <Text style={dh.metaLine}>
             {formatDate(data.tanggal, { dateStyle: "full" })}
             {data.waktu ? ` · ${data.waktu}` : ""}
           </Text>
-          <Text style={{ fontSize: 10, marginTop: 1 }}>
-            Tempat: {data.tempat}
-          </Text>
+          <Text style={dh.metaLine}>Tempat: {data.tempat}</Text>
           {data.penyelenggara && (
-            <Text style={{ fontSize: 10, marginTop: 1 }}>
-              {(data.penyelenggaraLabel?.trim() || "Penyelenggara")}:{" "}
-              {data.penyelenggara}
+            <Text style={dh.metaLine}>
+              {penyelenggaraLabel}: {data.penyelenggara}
             </Text>
           )}
         </View>
 
-        <View style={styles.table}>
-          {/* Header row */}
-          <View style={[styles.tableRow, styles.tableHeader]}>
-            <View style={[styles.tableCell, { width: 32, textAlign: "center" }]}>
-              <Text>No</Text>
+        <View style={dh.table}>
+          <View style={dh.tableHeaderRow} fixed>
+            <View style={dh.cellNo}>
+              <Text style={dh.headerText}>No</Text>
             </View>
-            <View style={[styles.tableCell, { flex: 2.5 }]}>
-              <Text>Nama Lengkap</Text>
+            <View style={dh.cellName}>
+              <Text style={dh.headerText}>Nama Lengkap</Text>
             </View>
-            <View style={[styles.tableCell, { flex: 1.3 }]}>
-              <Text>NIM</Text>
+            <View style={dh.cellNim}>
+              <Text style={dh.headerText}>NIM</Text>
             </View>
-            <View style={[styles.tableCell, { flex: 1.5, borderRightWidth: 0 }]}>
-              <Text>Tanda Tangan</Text>
+            <View style={dh.cellTtd}>
+              <Text style={dh.headerText}>Tanda Tangan</Text>
             </View>
           </View>
-          {/* Body rows */}
+
           {data.attendees.map((a, idx) => (
-            <View key={idx} style={styles.tableRow}>
-              <View
-                style={[
-                  styles.tableCell,
-                  { width: 32, textAlign: "center", height: 40, justifyContent: "center" },
-                ]}
-              >
-                <Text>{idx + 1}</Text>
+            <View
+              key={idx}
+              style={[dh.tableRow, dh.rowHeight]}
+              wrap={false}
+            >
+              <View style={dh.cellNo}>
+                <Text style={dh.cellText}>{idx + 1}</Text>
               </View>
-              <View style={[styles.tableCell, { flex: 2.5, height: 40, justifyContent: "center" }]}>
-                <Text>{a.name}</Text>
+              <View style={dh.cellName}>
+                <Text style={dh.cellText}>{a.name}</Text>
               </View>
-              <View style={[styles.tableCell, { flex: 1.3, height: 40, justifyContent: "center" }]}>
-                <Text>{a.nim ?? ""}</Text>
+              <View style={dh.cellNim}>
+                <Text style={dh.cellText}>{a.nim ?? ""}</Text>
               </View>
-              <View
-                style={[
-                  styles.tableCell,
-                  {
-                    flex: 1.5,
-                    borderRightWidth: 0,
-                    height: 40,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: 2,
-                  },
-                ]}
-              >
+              <View style={dh.cellTtd}>
                 {a.signature ? (
-                  // TTD digital di-embed sebagai data URI (di-fetch di route),
-                  // supaya renderer tidak butuh network access.
-                  <Image
-                    src={a.signature}
-                    style={{ maxHeight: 36, maxWidth: "100%" }}
-                  />
+                  <Image src={a.signature} style={dh.ttdImage} />
                 ) : (
-                  <Text> </Text>
+                  <Text style={dh.cellText}> </Text>
                 )}
               </View>
             </View>
           ))}
         </View>
 
-        {/* Signature line */}
-        <View style={{ marginTop: 24, alignItems: "flex-end" }}>
-          <Text>
-            {DOCUMENT_HEADER.city}, {formatDate(data.tanggal, { dateStyle: "long" })}
+        <View style={dh.footer} wrap={false}>
+          <Text style={dh.footerCity}>
+            {DOCUMENT_HEADER.city},{" "}
+            {formatDate(data.tanggal, { dateStyle: "long" })}
           </Text>
-          <Text style={{ marginTop: 2 }}>Mengetahui,</Text>
-          <View style={{ height: 48 }} />
-          <Text style={styles.bold}>Ketua Pelaksana</Text>
+          <Text style={dh.footerRole}>Ketua Pelaksana</Text>
+          <Text style={dh.footerName}>(______________________)</Text>
         </View>
       </Page>
     </Document>
